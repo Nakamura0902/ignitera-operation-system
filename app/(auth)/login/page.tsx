@@ -7,10 +7,9 @@ import {
   Eye, EyeOff, Shield, ArrowRight,
   ClipboardList, TrendingUp, Coins, Lock, User,
 } from "lucide-react";
-import FireTransition from "@/components/fire-transition";
 import { loginWithEmployeeId } from "@/lib/actions/auth";
 
-type Phase = "idle" | "loading" | "success" | "fire";
+type Phase = "idle" | "loading" | "success";
 
 const features = [
   {
@@ -51,30 +50,15 @@ export default function LoginPage() {
       return;
     }
     setPhase("success");
-    setTimeout(() => setPhase("fire"), 420);
-  };
-
-  const handleFireComplete = () => {
     window.location.href = "/";
   };
 
   const isLoading = phase === "loading";
-  const isSuccess = phase === "success" || phase === "fire";
+  const isSuccess = phase === "success";
 
   return (
     <div className="min-h-screen w-full flex relative overflow-hidden bg-[#020B2D]">
-      {/* Fire transition overlay */}
-      {phase === "fire" && <FireTransition onComplete={handleFireComplete} />}
-
-      {/* Login card — dissolves during fire */}
-      <div
-        className="w-full flex min-h-screen transition-all duration-500"
-        style={{
-          opacity: phase === "fire" ? 0 : 1,
-          filter: phase === "fire" ? "blur(6px)" : "none",
-          transform: phase === "fire" ? "scale(0.985)" : "scale(1)",
-        }}
-      >
+      <div className="w-full flex min-h-screen">
         {/* ── Left brand panel ── */}
         <div
           className="hidden lg:flex lg:w-[45%] flex-col relative overflow-hidden"
