@@ -8,7 +8,8 @@ import {
 } from "lucide-react";
 import TaskAttachments from "@/components/employee/task-attachments";
 import { getProgressLabel, getProgressColor, getPriorityLabel, getPriorityColor } from "@/lib/status-utils";
-import { updateTaskProgress, addComment, toggleChecklistItem } from "./actions";
+import { formatJstDateTime } from "@/lib/format-date";
+import { updateTaskProgress, addComment, toggleChecklistItem, submitTaskCompletion } from "./actions";
 
 export interface DbTaskDetail {
   id: string;
@@ -61,6 +62,8 @@ export default function TaskDetail({ task, userId }: { task: DbTaskDetail; userI
   const [commentText, setCommentText] = useState("");
   const [progressError, setProgressError] = useState("");
   const [commentError, setCommentError] = useState("");
+  const [completionMessage, setCompletionMessage] = useState("");
+  const [completionError, setCompletionError] = useState("");
   const [isPending, startTransition] = useTransition();
   // チェックリストの楽観的UI用（クリック後即座に表示を切り替える）
   const [checklistState, setChecklistState] = useState<Record<string, "pending" | "in_progress" | "completed">>(
@@ -112,6 +115,18 @@ export default function TaskDetail({ task, userId }: { task: DbTaskDetail; userI
         setProgressError(result.error);
       } else {
         setShowProgressModal(false);
+      }
+    });
+  }
+
+  function handleSubmitCompletion() {
+    setCompletionError("");
+    startTransition(async () => {
+      const result = await submitTaskCompletion(task.id, userId);
+      if (result.error) {
+        setCompletionError(result.error);
+      } else {
+        setCompletionMessage("完了提出しました。管理者の確認をお待ちください");
       }
     });
   }
@@ -266,7 +281,9 @@ export default function TaskDetail({ task, userId }: { task: DbTaskDetail; userI
                   <div key={comment.id} className="bg-slate-50 rounded-xl p-3">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-semibold text-slate-700">{comment.author_name}</span>
-                      <span className="text-[10px] text-slate-400">{comment.created_at.slice(0, 16).replace("T", " ")}</span>
+                      <span className="text-[10px] text-slate-400">
+                        {formatJstDateTime(comment.created_at)}
+                      </span>
                     </div>
                     <p className="text-sm text-slate-600">{comment.content}</p>
                   </div>
@@ -339,9 +356,21 @@ export default function TaskDetail({ task, userId }: { task: DbTaskDetail; userI
               className="w-full py-3 rounded-xl font-medium text-sm border border-orange-300 text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors flex items-center justify-center gap-2">
               <ShoppingBag size={14} /> マーケットに出す
             </Link>
-            <button className="w-full py-3 rounded-xl font-medium text-sm border border-emerald-300 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2">
-              <Send size={14} /> 完了で提出する
+            <button
+              onClick={handleSubmitCompletion}
+              disabled={isPending || !!completionMessage || task.status === "review" || task.status === "completed"}
+              className="w-full py-3 rounded-xl font-medium text-sm border border-emerald-300 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              <Send size={14} />
+              {task.status === "completed" ? "完了済み" :
+               task.status === "review" || completionMessage ? "確認待ち（提出済み）" :
+               isPending ? "提出中..." : "完了で提出する"}
             </button>
+            {completionMessage && (
+              <p className="text-xs text-emerald-600 text-center">{completionMessage}</p>
+            )}
+            {completionError && (
+              <p className="text-xs text-red-600 text-center">{completionError}</p>
+            )}
           </div>
         </div>
       </div>

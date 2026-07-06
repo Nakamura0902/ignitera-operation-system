@@ -23,8 +23,19 @@ const skillOptions = [
   "Excel/スプレッドシート", "デザイン経験", "コーディング経験",
 ];
 
-export default function ListTaskClient({ myTasks, userId }: { myTasks: MyTask[]; userId: string }) {
-  const [selectedTaskId, setSelectedTaskId] = useState(myTasks[0]?.id ?? "");
+export default function ListTaskClient({
+  myTasks,
+  userId,
+  initialTaskId,
+}: {
+  myTasks: MyTask[];
+  userId: string;
+  initialTaskId?: string;
+}) {
+  // URLの?taskId=が自分のタスクなら初期選択にする
+  const [selectedTaskId, setSelectedTaskId] = useState(
+    myTasks.find((t) => t.id === initialTaskId)?.id ?? myTasks[0]?.id ?? ""
+  );
   const [reason, setReason] = useState("busy");
   const [handoverNote, setHandoverNote] = useState("");
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);

@@ -3,6 +3,7 @@
 import { adminSupabase } from "@/lib/supabase/admin";
 import { writeAuditLog } from "@/lib/audit-log";
 import { createNotification } from "@/lib/notifications";
+import { verifyActor } from "@/lib/api-auth";
 import { revalidatePath } from "next/cache";
 
 export async function toggleChecklistItem(
@@ -11,6 +12,9 @@ export async function toggleChecklistItem(
   taskId: string,
   userId: string
 ) {
+  const authError = await verifyActor(userId);
+  if (authError) return { error: authError };
+
   const newStatus = currentStatus === "completed" ? "pending" : "completed";
 
   const { error } = await adminSupabase
@@ -61,6 +65,9 @@ export async function toggleChecklistItem(
 }
 
 export async function updateTaskProgress(taskId: string, newProgress: number, userId: string) {
+  const authError = await verifyActor(userId);
+  if (authError) return { error: authError };
+
   const { data: task, error: fetchError } = await adminSupabase
     .from("tasks")
     .select("progress_rate, status, assigned_to, title")
@@ -119,7 +126,78 @@ export async function updateTaskProgress(taskId: string, newProgress: number, us
   return { success: true };
 }
 
+// 完了で提出する: ステータスを「確認待ち(review)」にして管理者レビューへ回す
+export async function submitTaskCompletion(taskId: string, userId: string) {
+  const authError = await verifyActor(userId);
+  if (authError) return { error: authError };
+
+  const { data: task, error: fetchError } = await adminSupabase
+    .from("tasks")
+    .select("status, progress_rate, assigned_to, created_by, title")
+    .eq("id", taskId)
+    .single();
+
+  if (fetchError || !task) {
+    return { error: "タスクが見つかりません" };
+  }
+  if (task.assigned_to !== userId) {
+    return { error: "担当者のみ完了提出できます" };
+  }
+  if (task.status === "review") {
+    return { error: "すでに提出済みです（確認待ち）" };
+  }
+  if (task.status === "completed") {
+    return { error: "このタスクはすでに完了しています" };
+  }
+
+  // 進捗91〜99%が「確認待ち」の定義（CLAUDE.md）。現在値が91未満なら95に引き上げる
+  const newProgress = Math.max(task.progress_rate, 95);
+
+  const { error: updateError } = await adminSupabase
+    .from("tasks")
+    .update({ status: "review", progress_rate: newProgress })
+    .eq("id", taskId);
+
+  if (updateError) {
+    return { error: "完了提出に失敗しました" };
+  }
+
+  await adminSupabase.from("task_progress_history").insert({
+    task_id: taskId,
+    user_id: userId,
+    previous_progress: task.progress_rate,
+    new_progress: newProgress,
+  });
+
+  await writeAuditLog({
+    userId,
+    action: "submit_task_completion",
+    targetType: "task",
+    targetId: taskId,
+    before: { status: task.status, progress_rate: task.progress_rate },
+    after: { status: "review", progress_rate: newProgress },
+  });
+
+  // タスク作成者（社長・管理者）にレビュー依頼を通知
+  if (task.created_by && task.created_by !== userId) {
+    await createNotification({
+      userId: task.created_by,
+      title: "タスクが完了提出されました",
+      message: `「${task.title}」が完了提出されました。内容を確認してください`,
+      type: "approval_required",
+      actionUrl: `/tasks/${taskId}`,
+    });
+  }
+
+  revalidatePath(`/tasks/${taskId}`);
+  revalidatePath("/tasks");
+  return { success: true };
+}
+
 export async function addComment(taskId: string, content: string, userId: string) {
+  const authError = await verifyActor(userId);
+  if (authError) return { error: authError };
+
   if (!content.trim()) {
     return { error: "コメントを入力してください" };
   }

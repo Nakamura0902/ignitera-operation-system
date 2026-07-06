@@ -130,7 +130,7 @@ export default async function HomePage() {
   } = await fetchHomeData(authUser.id);
 
   const today = new Date();
-  const dateLabel = today.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric", weekday: "short" });
+  const dateLabel = today.toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo", year: "numeric", month: "long", day: "numeric", weekday: "short" });
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">

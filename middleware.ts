@@ -14,6 +14,7 @@ const CEO_ROUTES = [
   "/payroll-report",
   "/approval-center",
   "/user-management",
+  "/ceo-settings",
 ];
 
 // Employee-only routes

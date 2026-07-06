@@ -94,7 +94,7 @@ export default function CeoSidebar({ user }: { user: CeoSidebarUser }) {
         ))}
 
         <div className="my-3 border-t border-white/8" />
-        <Link href="/settings"
+        <Link href="/ceo-settings"
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-white/8 hover:text-white transition-all">
           <Settings size={15} />
           <span>設定</span>

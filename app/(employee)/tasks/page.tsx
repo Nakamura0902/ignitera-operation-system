@@ -1,8 +1,9 @@
 import { Filter } from "lucide-react";
 import { adminSupabase } from "@/lib/supabase/admin";
+import { getCurrentUser } from "@/lib/get-current-user";
 import TaskList, { DbTask } from "./task-list";
 
-async function fetchTasks(): Promise<DbTask[]> {
+async function fetchTasks(userId: string): Promise<DbTask[]> {
   const { data, error } = await adminSupabase
     .from("tasks")
     .select(`
@@ -11,6 +12,7 @@ async function fetchTasks(): Promise<DbTask[]> {
       task_scores ( difficulty, effort, contribution ),
       users!tasks_assigned_to_fkey ( full_name )
     `)
+    .eq("assigned_to", userId)
     .neq("status", "cancelled")
     .order("created_at", { ascending: false });
 
@@ -38,7 +40,8 @@ async function fetchTasks(): Promise<DbTask[]> {
 }
 
 export default async function TasksPage() {
-  const tasks = await fetchTasks();
+  const user = await getCurrentUser();
+  const tasks = await fetchTasks(user.id);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">

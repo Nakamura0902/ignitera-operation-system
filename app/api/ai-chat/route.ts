@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import fs from "fs";
 import path from "path";
+import { getApiUser, isCeoOrAdmin } from "@/lib/api-auth";
 
 function getKeyFromEnvFile(): string {
   try {
@@ -14,6 +15,15 @@ function getKeyFromEnvFile(): string {
 }
 
 export async function POST(req: Request) {
+  // AI指示入力は社長・管理者のみ（社員は不可）
+  const user = await getApiUser();
+  if (!user) {
+    return Response.json({ error: "認証が必要です" }, { status: 401 });
+  }
+  if (!isCeoOrAdmin(user)) {
+    return Response.json({ error: "この操作は社長・管理者のみ可能です" }, { status: 403 });
+  }
+
   const { messages, systemPrompt } = await req.json();
 
   // システム環境変数が空文字で存在する場合、.env.local の値で上書きする

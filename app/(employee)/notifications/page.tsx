@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/get-current-user";
 import { getNotifications, markAllAsRead } from "@/lib/notifications";
 
@@ -72,6 +73,8 @@ export default async function NotificationsPage() {
     "use server";
     const user = await getCurrentUser();
     await markAllAsRead(user.id);
+    revalidatePath("/notifications");
+    revalidatePath("/", "layout");
   }
 
   return (

@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase/admin";
+import { getApiUser } from "@/lib/api-auth";
 
 const BUCKET = "task-attachments";
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 export async function POST(req: NextRequest) {
+  const user = await getApiUser();
+  if (!user) return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
+
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
-  const userId = formData.get("userId") as string;
   const taskId = formData.get("taskId") as string;
 
-  if (!file || !userId || !taskId) {
+  if (!file || !taskId) {
     return NextResponse.json({ error: "必須パラメータが不足しています" }, { status: 400 });
   }
 
@@ -18,7 +21,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "ファイルサイズは10MB以内にしてください" }, { status: 400 });
   }
 
-  const ext = file.name.split(".").pop() ?? "";
   const filePath = `tasks/${taskId}/${Date.now()}_${file.name}`;
 
   const arrayBuffer = await file.arrayBuffer();
@@ -32,11 +34,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "アップロードに失敗しました" }, { status: 500 });
   }
 
-  // attachmentsテーブルに記録
+  // attachmentsテーブルに記録（user_idはセッションから取得）
   const { data: row, error: dbError } = await adminSupabase
     .from("attachments")
     .insert({
-      user_id: userId,
+      user_id: user.id,
       file_name: file.name,
       file_path: filePath,
       file_size: file.size,
@@ -58,22 +60,25 @@ export async function POST(req: NextRequest) {
 
 // ファイル一覧取得
 export async function GET(req: NextRequest) {
+  const user = await getApiUser();
+  if (!user) return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
+
   const taskId = req.nextUrl.searchParams.get("taskId");
   if (!taskId) return NextResponse.json({ attachments: [] });
 
   const { data } = await adminSupabase
     .from("attachments")
-    .select("id, file_name, file_size, mime_type, created_at, user_id, users(full_name)")
+    .select("id, file_name, file_path, file_size, mime_type, created_at, user_id, users(full_name)")
     .eq("target_type", "task")
     .eq("target_id", taskId)
     .order("created_at", { ascending: false });
 
-  // 署名付きURLを生成
+  // 署名付きURLを生成（保存時のfile_pathをそのまま使う）
   const attachments = await Promise.all(
     (data ?? []).map(async (row) => {
       const { data: signed } = await adminSupabase.storage
         .from(BUCKET)
-        .createSignedUrl(`tasks/${taskId}/${row.file_name}`, 3600);
+        .createSignedUrl(row.file_path, 3600);
       return {
         id: row.id,
         fileName: row.file_name,
@@ -91,8 +96,11 @@ export async function GET(req: NextRequest) {
 
 // ファイル削除
 export async function DELETE(req: NextRequest) {
-  const { attachmentId, userId } = await req.json();
-  if (!attachmentId || !userId) return NextResponse.json({ error: "invalid" }, { status: 400 });
+  const user = await getApiUser();
+  if (!user) return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
+
+  const { attachmentId } = await req.json();
+  if (!attachmentId) return NextResponse.json({ error: "invalid" }, { status: 400 });
 
   const { data: row } = await adminSupabase
     .from("attachments")
@@ -101,7 +109,7 @@ export async function DELETE(req: NextRequest) {
     .single();
 
   if (!row) return NextResponse.json({ error: "ファイルが見つかりません" }, { status: 404 });
-  if (row.user_id !== userId) return NextResponse.json({ error: "削除権限がありません" }, { status: 403 });
+  if (row.user_id !== user.id) return NextResponse.json({ error: "削除権限がありません" }, { status: 403 });
 
   await adminSupabase.storage.from(BUCKET).remove([row.file_path]);
   await adminSupabase.from("attachments").delete().eq("id", attachmentId);

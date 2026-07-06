@@ -3,10 +3,20 @@
 import { revalidatePath } from "next/cache";
 import { adminSupabase } from "@/lib/supabase/admin";
 import { writeAuditLog } from "@/lib/audit-log";
+import { getApiUser, isCeoOrAdmin } from "@/lib/api-auth";
 
-const SYSTEM_USER_ID = "system";
+// ユーザー管理操作は社長・管理者のみ。操作者IDを返す
+async function requireAdmin(): Promise<{ error: string } | { actorId: string }> {
+  const session = await getApiUser();
+  if (!session) return { error: "認証が必要です" };
+  if (!isCeoOrAdmin(session)) return { error: "この操作は社長・管理者のみ可能です" };
+  return { actorId: session.id };
+}
 
 export async function updateUserRole(userId: string, roleId: string) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
+
   const { data: before } = await adminSupabase
     .from("users")
     .select("role_id")
@@ -21,7 +31,7 @@ export async function updateUserRole(userId: string, roleId: string) {
   if (error) return { error: "ロールの更新に失敗しました" };
 
   await writeAuditLog({
-    userId: SYSTEM_USER_ID,
+    userId: auth.actorId,
     action: "update_user_role",
     targetType: "users",
     targetId: userId,
@@ -34,6 +44,9 @@ export async function updateUserRole(userId: string, roleId: string) {
 }
 
 export async function updateUserDepartment(userId: string, departmentId: string) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
+
   const { data: before } = await adminSupabase
     .from("users")
     .select("department_id")
@@ -48,7 +61,7 @@ export async function updateUserDepartment(userId: string, departmentId: string)
   if (error) return { error: "部門の更新に失敗しました" };
 
   await writeAuditLog({
-    userId: SYSTEM_USER_ID,
+    userId: auth.actorId,
     action: "update_user_department",
     targetType: "users",
     targetId: userId,
@@ -61,6 +74,9 @@ export async function updateUserDepartment(userId: string, departmentId: string)
 }
 
 export async function toggleUserActive(userId: string, isActive: boolean) {
+  const auth = await requireAdmin();
+  if ("error" in auth) return { error: auth.error };
+
   const { error } = await adminSupabase
     .from("users")
     .update({ is_active: isActive })
@@ -69,7 +85,7 @@ export async function toggleUserActive(userId: string, isActive: boolean) {
   if (error) return { error: "ステータスの更新に失敗しました" };
 
   await writeAuditLog({
-    userId: SYSTEM_USER_ID,
+    userId: auth.actorId,
     action: "toggle_user_active",
     targetType: "users",
     targetId: userId,

@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/get-current-user";
 import { adminSupabase } from "@/lib/supabase/admin";
+import { formatJstShortDateTime } from "@/lib/format-date";
 import AiSecretaryClient from "./ai-secretary-client";
 
 async function fetchHistory(userId: string) {
@@ -14,9 +15,7 @@ async function fetchHistory(userId: string) {
   return (data ?? []).map((r) => ({
     id: r.id,
     text: r.title,
-    date: new Date(r.created_at).toLocaleString("ja-JP", {
-      month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit",
-    }),
+    date: formatJstShortDateTime(r.created_at),
     status: "完了",
     summary: (r.content as { summary?: string })?.summary ?? "",
   }));

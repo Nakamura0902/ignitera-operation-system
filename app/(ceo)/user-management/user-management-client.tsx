@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Users, Search } from "lucide-react";
 import { updateUserRole, updateUserDepartment, toggleUserActive } from "./actions";
+import { formatJstDate } from "@/lib/format-date";
 import type { UserRow, RoleOption, DeptOption } from "./page";
 
 const ROLE_FILTER_OPTIONS = [
@@ -99,11 +100,7 @@ function UserTableRow({ user, roles, departments, onMessage }: UserRowProps) {
     }
   }
 
-  const formattedDate = new Date(user.created_at).toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
+  const formattedDate = formatJstDate(user.created_at);
 
   return (
     <tr className="hover:bg-slate-50 transition-colors">

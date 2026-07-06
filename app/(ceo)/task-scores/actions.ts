@@ -3,6 +3,7 @@
 import { adminSupabase } from "@/lib/supabase/admin";
 import { writeAuditLog } from "@/lib/audit-log";
 import { createNotification } from "@/lib/notifications";
+import { verifyCeoOrAdmin } from "@/lib/api-auth";
 
 export async function confirmTaskScore(
   taskScoreId: string,
@@ -10,6 +11,9 @@ export async function confirmTaskScore(
   qualityCoefficient: number,
   approvedByUserId: string
 ) {
+  const authError = await verifyCeoOrAdmin(approvedByUserId);
+  if (authError) return { error: authError };
+
   const { data: scoreRow, error: fetchError } = await adminSupabase
     .from("task_scores")
     .select("provisional_total, task_id")
@@ -82,6 +86,9 @@ export async function rejectTaskScore(
   rejectedByUserId: string,
   reason?: string
 ) {
+  const authError = await verifyCeoOrAdmin(rejectedByUserId);
+  if (authError) return { error: authError };
+
   const { data: scoreRow } = await adminSupabase
     .from("task_scores")
     .select("task_id")

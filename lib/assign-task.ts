@@ -16,13 +16,27 @@ export async function assignTask(
     }
   }
 
-  const { data: members } = await adminSupabase
-    .from("users")
-    .select("id")
-    .eq("department_id", departmentId)
-    .eq("is_active", true);
+  // 担当業務（user_departments）にこの部門を選んでいる社員を候補にする。
+  // 未設定の社員のために users.department_id もフォールバックとして合算する。
+  const [{ data: workMembers }, { data: legacyMembers }] = await Promise.all([
+    adminSupabase
+      .from("user_departments")
+      .select("user_id, users!inner(id, is_active)")
+      .eq("department_id", departmentId)
+      .eq("users.is_active", true),
+    adminSupabase
+      .from("users")
+      .select("id")
+      .eq("department_id", departmentId)
+      .eq("is_active", true),
+  ]);
 
-  if (!members || members.length === 0) return null;
+  const memberIds = new Set<string>();
+  (workMembers ?? []).forEach((m) => memberIds.add(m.user_id));
+  (legacyMembers ?? []).forEach((m) => memberIds.add(m.id));
+  const members = [...memberIds].map((id) => ({ id }));
+
+  if (members.length === 0) return null;
 
   const taskCounts = await Promise.all(
     members.map(async (member) => {

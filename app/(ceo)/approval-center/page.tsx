@@ -1,5 +1,6 @@
 import { adminSupabase } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/get-current-user";
+import { formatJstDate } from "@/lib/format-date";
 import ApprovalCenterClient from "./approval-center-client";
 
 export interface ApprovalItem {
@@ -96,7 +97,7 @@ async function fetchApprovalItems(): Promise<ApprovalItem[]> {
       title: task?.title ?? "タスク名不明",
       detail: `担当: ${task?.users?.full_name ?? "未設定"} · 仮${score.provisional_total}pt`,
       submittedBy: task?.users?.full_name ?? "未設定",
-      submittedAt: new Date(score.created_at).toLocaleDateString("ja-JP"),
+      submittedAt: formatJstDate(score.created_at),
     });
   }
 
@@ -124,7 +125,7 @@ async function fetchApprovalItems(): Promise<ApprovalItem[]> {
       title: task?.title ?? "タスク名不明",
       detail: `残${listing.remaining_points}pt · 期日まで${daysLeft}日`,
       submittedBy: lister?.full_name ?? "未設定",
-      submittedAt: new Date(listing.created_at).toLocaleDateString("ja-JP"),
+      submittedAt: formatJstDate(listing.created_at),
     });
   }
 
@@ -140,7 +141,7 @@ async function fetchApprovalItems(): Promise<ApprovalItem[]> {
       detail: `支給見込み ¥${Number(payroll.total_estimate).toLocaleString()}`,
       amount: Number(payroll.total_estimate),
       submittedBy: user?.full_name ?? "未設定",
-      submittedAt: new Date(payroll.created_at).toLocaleDateString("ja-JP"),
+      submittedAt: formatJstDate(payroll.created_at),
     });
   }
 

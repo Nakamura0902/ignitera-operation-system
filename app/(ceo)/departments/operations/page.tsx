@@ -3,6 +3,7 @@ import {
   ClipboardList, FileText, BookOpen, ArrowRight, CheckCircle2, Clock,
 } from "lucide-react";
 import { adminSupabase } from "@/lib/supabase/admin";
+import { formatJstDate } from "@/lib/format-date";
 
 const docTypeLabels: Record<string, string> = {
   procedure: "手順書",
@@ -63,7 +64,7 @@ async function fetchOperationsData() {
       type: doc.type,
       typeLabel: docTypeLabels[doc.type] ?? doc.type,
       department: dept?.display_name ?? "全社",
-      updatedAt: new Date(doc.updated_at).toLocaleDateString("ja-JP"),
+      updatedAt: formatJstDate(doc.updated_at),
       author: user?.full_name ?? "不明",
     };
   });

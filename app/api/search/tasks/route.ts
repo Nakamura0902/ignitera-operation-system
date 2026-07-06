@@ -1,21 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminSupabase } from "@/lib/supabase/admin";
+import { getApiUser } from "@/lib/api-auth";
 
 export async function GET(req: NextRequest) {
-  const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
-  const userId = req.nextUrl.searchParams.get("userId") ?? "";
+  const user = await getApiUser();
+  if (!user) return NextResponse.json({ error: "認証が必要です" }, { status: 401 });
 
-  if (!q || !userId) {
+  const q = req.nextUrl.searchParams.get("q")?.trim() ?? "";
+  if (!q) {
     return NextResponse.json({ results: [] });
   }
 
+  // 自分に割り当てられたタスクのみ検索対象（userIdはセッションから取得）
   const { data, error } = await adminSupabase
     .from("tasks")
     .select(`
       id, title, status, priority, progress_rate,
       departments ( display_name )
     `)
-    .eq("assigned_to", userId)
+    .eq("assigned_to", user.id)
     .ilike("title", `%${q}%`)
     .not("status", "eq", "cancelled")
     .order("created_at", { ascending: false })

@@ -3,12 +3,16 @@
 import { adminSupabase } from "@/lib/supabase/admin";
 import { writeAuditLog } from "@/lib/audit-log";
 import { createNotification } from "@/lib/notifications";
+import { verifyCeoOrAdmin } from "@/lib/api-auth";
 
 export async function approveItem(
   type: "task_score" | "market" | "payroll",
   itemId: string,
   approvedByUserId: string
 ) {
+  const authError = await verifyCeoOrAdmin(approvedByUserId);
+  if (authError) return { error: authError };
+
   if (type === "task_score") {
     const { data: score } = await adminSupabase
       .from("task_scores")
@@ -76,6 +80,12 @@ export async function approveItem(
       })
       .eq("id", itemId);
 
+    // タスク側にも出品中フラグを立てる（task-market-monitorの承認と同じ挙動）
+    await adminSupabase
+      .from("tasks")
+      .update({ is_on_market: true })
+      .eq("id", listing.task_id);
+
     await createNotification({
       userId: listing.listed_by,
       title: "タスクマーケットへの出品が承認されました",
@@ -142,6 +152,9 @@ export async function rejectItem(
   rejectedByUserId: string,
   reason?: string
 ) {
+  const authError = await verifyCeoOrAdmin(rejectedByUserId);
+  if (authError) return { error: authError };
+
   if (type === "market") {
     const { data: listing } = await adminSupabase
       .from("task_market_listings")

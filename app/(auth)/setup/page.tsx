@@ -1,19 +1,16 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Mail, Lock, CheckCircle2, User, ArrowLeft, Building2 } from "lucide-react";
-import { setupEmployee, getDepartments } from "@/lib/actions/auth";
+import { Eye, EyeOff, Mail, Lock, CheckCircle2, User, ArrowLeft, BadgeCheck } from "lucide-react";
+import { setupEmployee } from "@/lib/actions/auth";
 
-const DEPT_LABELS: Record<string, string> = {
-  development: "開発部",
-  sales: "営業部",
-  projects: "案件管理部",
-  accounting: "経理・請求部",
-  operations: "事務・オペレーション部",
-};
+const POSITIONS = [
+  { id: "employee", label: "社員", desc: "タスクの実行・報告を行います" },
+  { id: "manager", label: "マネージャー", desc: "部門管理・承認を行います" },
+] as const;
 
 const steps = [
   { num: 1, label: "アカウント設定" },
@@ -25,7 +22,7 @@ export default function SetupPage() {
   const router = useRouter();
 
   const [fullName, setFullName] = useState("");
-  const [departmentId, setDepartmentId] = useState("");
+  const [position, setPosition] = useState<"manager" | "employee" | "">("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirm, setPasswordConfirm] = useState("");
@@ -36,26 +33,18 @@ export default function SetupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [assignedId, setAssignedId] = useState("");
-  const [departments, setDepartments] = useState<{ id: string; name: string }[]>([]);
   const [, startTransition] = useTransition();
-
-  useEffect(() => {
-    getDepartments().then(setDepartments);
-  }, []);
 
   const passwordsMatch = password === passwordConfirm;
   const isValid =
     fullName.trim() !== "" &&
-    departmentId !== "" &&
+    position !== "" &&
     email.trim() !== "" &&
     password.length >= 8 &&
     passwordsMatch &&
     agreed;
 
-  const selectedDeptName = departments.find((d) => d.id === departmentId);
-  const selectedDeptLabel = selectedDeptName
-    ? DEPT_LABELS[selectedDeptName.name] ?? selectedDeptName.name
-    : "";
+  const selectedPositionLabel = POSITIONS.find((p) => p.id === position)?.label ?? "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +54,7 @@ export default function SetupPage() {
     setIsLoading(true);
 
     startTransition(async () => {
-      const result = await setupEmployee(email, password, fullName, departmentId || null);
+      const result = await setupEmployee(email, password, fullName, position as "manager" | "employee");
       setIsLoading(false);
       if (result.error) {
         setError(result.error);
@@ -211,25 +200,31 @@ export default function SetupPage() {
                       </div>
                     </div>
 
-                    {/* Department */}
+                    {/* Position */}
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">部署</label>
-                      <div className="relative">
-                        <Building2 size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" />
-                        <select
-                          value={departmentId}
-                          onChange={(e) => setDepartmentId(e.target.value)}
-                          disabled={isLoading || departments.length === 0}
-                          className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all disabled:opacity-50 bg-white appearance-none"
-                        >
-                          <option value="">部署を選択してください</option>
-                          {departments.map((dept) => (
-                            <option key={dept.id} value={dept.id}>
-                              {DEPT_LABELS[dept.name] ?? dept.name}
-                            </option>
-                          ))}
-                        </select>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">役職</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {POSITIONS.map(({ id, label, desc }) => (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => setPosition(id)}
+                            disabled={isLoading}
+                            className={`text-left px-4 py-3 rounded-xl border transition-all disabled:opacity-50 ${
+                              position === id
+                                ? "border-blue-500 bg-blue-50 ring-2 ring-blue-500/30"
+                                : "border-slate-200 bg-white hover:border-blue-300"
+                            }`}
+                          >
+                            <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-800">
+                              <BadgeCheck size={14} className={position === id ? "text-blue-600" : "text-slate-300"} />
+                              {label}
+                            </span>
+                            <span className="block text-[11px] text-slate-400 mt-0.5">{desc}</span>
+                          </button>
+                        ))}
                       </div>
+                      <p className="text-[11px] text-slate-400 mt-1.5">担当する業務（開発・営業など）はログイン後の設定画面で選べます。</p>
                     </div>
 
                     {/* Email */}
@@ -350,7 +345,7 @@ export default function SetupPage() {
                     <div className="space-y-3.5">
                       {[
                         { label: "氏名", value: fullName.trim() || "（未入力）", icon: User, highlight: false },
-                        { label: "部署", value: selectedDeptLabel || "（未選択）", icon: Building2, highlight: false },
+                        { label: "役職", value: selectedPositionLabel || "（未選択）", icon: BadgeCheck, highlight: false },
                         { label: "ログイン方法", value: "社員ID + パスワード", icon: Lock, highlight: false },
                         { label: "社員ID", value: "登録完了後に自動発行", icon: User, highlight: false },
                         { label: "ステータス", value: "初期設定中", icon: CheckCircle2, highlight: true },

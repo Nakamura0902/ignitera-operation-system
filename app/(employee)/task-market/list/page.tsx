@@ -25,8 +25,12 @@ async function fetchMyActiveTasks(userId: string): Promise<MyTask[]> {
   }));
 }
 
-export default async function ListTaskPage() {
+export default async function ListTaskPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ taskId?: string }>;
+}) {
   const user = await getCurrentUser();
-  const myTasks = await fetchMyActiveTasks(user.id);
-  return <ListTaskClient myTasks={myTasks} userId={user.id} />;
+  const [myTasks, params] = await Promise.all([fetchMyActiveTasks(user.id), searchParams]);
+  return <ListTaskClient myTasks={myTasks} userId={user.id} initialTaskId={params.taskId} />;
 }

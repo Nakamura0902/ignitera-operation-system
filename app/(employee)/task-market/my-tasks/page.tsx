@@ -1,5 +1,6 @@
 import { getCurrentUser } from "@/lib/get-current-user";
 import { adminSupabase } from "@/lib/supabase/admin";
+import { formatJstDate } from "@/lib/format-date";
 import MyAcceptedTasksClient from "./my-accepted-tasks-client";
 
 interface AcceptedTask {
@@ -56,7 +57,7 @@ async function fetchMyMarketActivity(userId: string) {
       dueDate: task?.due_date ?? "",
       remainingPoints,
       status: isCompleted ? "completed" : "in_progress",
-      acceptedAt: app.created_at.slice(0, 10),
+      acceptedAt: formatJstDate(app.created_at),
       confirmedPoints: isCompleted ? remainingPoints : undefined,
     };
   });
@@ -78,7 +79,7 @@ async function fetchMyMarketActivity(userId: string) {
       id: listing.id,
       taskTitle: task?.title ?? "不明なタスク",
       status: listing.status as string,
-      createdAt: listing.created_at.slice(0, 10),
+      createdAt: formatJstDate(listing.created_at),
       progress: task?.progress_rate ?? 0,
       dueDate: task?.due_date ?? "",
     };
@@ -112,7 +113,7 @@ async function fetchMyMarketActivity(userId: string) {
         taskTitle: listing?.tasks?.title ?? "不明なタスク",
         applicantName: applicant?.full_name ?? "不明",
         message: app.message ?? "",
-        appliedAt: app.created_at.slice(0, 10),
+        appliedAt: formatJstDate(app.created_at),
         status: app.status as "pending" | "approved" | "rejected",
       };
     });

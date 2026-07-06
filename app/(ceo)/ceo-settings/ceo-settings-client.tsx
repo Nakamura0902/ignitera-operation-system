@@ -2,14 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Lock, CheckCircle2, AlertCircle, Briefcase } from "lucide-react";
-import { updateDisplayName, updatePassword, updateWorkDepartments } from "./actions";
+import { Pencil, Lock, CheckCircle2, AlertCircle, Crown } from "lucide-react";
+import { updateDisplayName, updatePassword } from "@/app/(employee)/settings/actions";
 import type { CurrentUser } from "@/lib/get-current-user";
-
-export interface DepartmentOption {
-  id: string;
-  display_name: string;
-}
 
 function StatusMessage({ message, isError }: { message: string; isError: boolean }) {
   return (
@@ -22,28 +17,13 @@ function StatusMessage({ message, isError }: { message: string; isError: boolean
   );
 }
 
-export default function SettingsClient({
-  user,
-  departments,
-  initialDepartmentIds,
-}: {
-  user: CurrentUser;
-  departments: DepartmentOption[];
-  initialDepartmentIds: string[];
-}) {
+export default function CeoSettingsClient({ user }: { user: CurrentUser }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   // 氏名変更
   const [newName, setNewName] = useState(user.name);
   const [nameMsg, setNameMsg] = useState<{ text: string; error: boolean } | null>(null);
-
-  // 担当業務（複数選択）
-  const [selectedDeptIds, setSelectedDeptIds] = useState<string[]>(initialDepartmentIds);
-  const [deptMsg, setDeptMsg] = useState<{ text: string; error: boolean } | null>(null);
-  const deptChanged =
-    selectedDeptIds.length !== initialDepartmentIds.length ||
-    selectedDeptIds.some((id) => !initialDepartmentIds.includes(id));
 
   // パスワード変更
   const [newPw, setNewPw] = useState("");
@@ -65,26 +45,6 @@ export default function SettingsClient({
     });
   }
 
-  function toggleDept(deptId: string) {
-    setSelectedDeptIds((prev) =>
-      prev.includes(deptId) ? prev.filter((id) => id !== deptId) : [...prev, deptId]
-    );
-  }
-
-  function handleDeptUpdate() {
-    setDeptMsg(null);
-    startTransition(async () => {
-      const result = await updateWorkDepartments(user.id, selectedDeptIds);
-      if (result.error) {
-        setDeptMsg({ text: result.error, error: true });
-      } else {
-        setDeptMsg({ text: "担当業務を更新しました", error: false });
-        router.refresh();
-        setTimeout(() => setDeptMsg(null), 3000);
-      }
-    });
-  }
-
   function handlePasswordUpdate() {
     setPwMsg(null);
     startTransition(async () => {
@@ -102,24 +62,32 @@ export default function SettingsClient({
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <h1 className="text-xl font-bold text-slate-800">設定・プロフィール</h1>
+      <div>
+        <h1 className="text-xl font-bold text-slate-800">設定</h1>
+        <p className="text-slate-500 text-sm mt-0.5">CEOアカウントのプロフィール・セキュリティ設定</p>
+      </div>
 
       {/* プロフィール表示 */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
         <div className="flex items-center gap-4 mb-5">
           <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white"
-            style={{ background: "linear-gradient(135deg,#2563eb,#7c3aed)" }}>
+            style={{ background: "linear-gradient(135deg, #f59e0b, #ef4444)" }}>
             {user.name.charAt(0)}
           </div>
           <div>
-            <p className="text-lg font-bold text-slate-800">{user.name}</p>
-            <p className="text-sm text-slate-500">{user.department} / {user.employeeId}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-lg font-bold text-slate-800">{user.name}</p>
+              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full">
+                <Crown size={10} /> CEO
+              </span>
+            </div>
+            <p className="text-sm text-slate-500">{user.employeeId || "ID未設定"}</p>
           </div>
         </div>
         <div className="grid gap-3">
           {[
-            { label: "部署", value: user.department },
-            { label: "社員ID", value: user.employeeId },
+            { label: "役職", value: "代表取締役 CEO" },
+            { label: "社員ID", value: user.employeeId || "未設定" },
             { label: "メールアドレス", value: user.email },
           ].map(({ label, value }) => (
             <div key={label} className="flex items-center justify-between py-3 border-b border-slate-100">
@@ -128,43 +96,6 @@ export default function SettingsClient({
             </div>
           ))}
         </div>
-      </div>
-
-      {/* 担当業務（複数選択） */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-2 mb-1">
-          <Briefcase size={15} className="text-blue-600" />
-          <h2 className="text-sm font-bold text-slate-700">担当業務</h2>
-        </div>
-        <p className="text-xs text-slate-400 mb-4">担当する業務を選択してください（複数選択可）。タスクの割り振りに使われます。</p>
-        <div className="flex flex-wrap gap-2 mb-3">
-          {departments.map((dept) => {
-            const selected = selectedDeptIds.includes(dept.id);
-            return (
-              <button
-                key={dept.id}
-                type="button"
-                onClick={() => toggleDept(dept.id)}
-                disabled={isPending}
-                className={`px-4 py-2 rounded-full text-sm font-medium border transition-all disabled:opacity-50 ${
-                  selected
-                    ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-blue-300"
-                }`}
-              >
-                {selected && "✓ "}{dept.display_name}
-              </button>
-            );
-          })}
-        </div>
-        {deptMsg && <StatusMessage message={deptMsg.text} isError={deptMsg.error} />}
-        <button
-          onClick={handleDeptUpdate}
-          disabled={isPending || !deptChanged || selectedDeptIds.length === 0}
-          className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 mt-2"
-        >
-          {isPending ? "更新中..." : "担当業務を更新する"}
-        </button>
       </div>
 
       {/* 氏名変更 */}

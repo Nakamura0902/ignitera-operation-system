@@ -1,6 +1,6 @@
 import { adminSupabase } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
 import { assignTask } from "@/lib/assign-task";
+import { getApiUser, isCeoOrAdmin } from "@/lib/api-auth";
 
 interface AiAction {
   label: string;
@@ -27,11 +27,13 @@ function deptNameToSlug(aiDeptName: string): string {
 }
 
 export async function POST(req: Request) {
-  // Get current user from session
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // タスク一括生成は社長・管理者のみ（社員は不可）
+  const user = await getApiUser();
   if (!user) {
     return Response.json({ error: "認証が必要です" }, { status: 401 });
+  }
+  if (!isCeoOrAdmin(user)) {
+    return Response.json({ error: "この操作は社長・管理者のみ可能です" }, { status: 403 });
   }
   const ceoId = user.id;
 

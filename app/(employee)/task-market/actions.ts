@@ -3,6 +3,7 @@
 import { adminSupabase } from "@/lib/supabase/admin";
 import { writeAuditLog } from "@/lib/audit-log";
 import { createNotification } from "@/lib/notifications";
+import { verifyActor } from "@/lib/api-auth";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -14,6 +15,9 @@ export async function submitMarketListing(formData: {
   userId: string;
 }) {
   const { taskId, reason, handoverNote, requiredSkills, userId } = formData;
+
+  const authError = await verifyActor(userId);
+  if (authError) return { error: authError };
 
   if (!handoverNote.trim()) {
     return { error: "引き継ぎメモは必須です" };
@@ -38,6 +42,12 @@ export async function submitMarketListing(formData: {
     }
   }
 
+  // 出品時点の進捗と残りポイントを記録（点数分配・CEO監視画面で使用）
+  const progressAtListing = task.progress_rate ?? 0;
+  const remainingPoints = Math.round(
+    (task.provisional_score ?? 0) * (1 - progressAtListing / 100)
+  );
+
   const { error: insertError } = await adminSupabase
     .from("task_market_listings")
     .insert({
@@ -46,6 +56,8 @@ export async function submitMarketListing(formData: {
       reason,
       handover_note: handoverNote,
       required_skills: requiredSkills,
+      progress_at_listing: progressAtListing,
+      remaining_points: remainingPoints,
       status: "pending_approval",
       expires_at: task.due_date ?? null,
     });
@@ -72,6 +84,9 @@ export async function submitMarketApplication(formData: {
   userId: string;
 }) {
   const { listingId, message, userId } = formData;
+
+  const authError = await verifyActor(userId);
+  if (authError) return { error: authError };
 
   if (!message.trim()) {
     return { error: "引き受け理由を入力してください" };
@@ -134,6 +149,9 @@ export async function submitMarketApplication(formData: {
 
 // 自分の出品タスクへの申請を承認する
 export async function approveApplication(applicationId: string, ownerId: string) {
+  const authError = await verifyActor(ownerId);
+  if (authError) return { error: authError };
+
   const { data: app } = await adminSupabase
     .from("task_applications")
     .select(`
@@ -199,6 +217,9 @@ export async function approveApplication(applicationId: string, ownerId: string)
 
 // 自分の出品タスクへの申請を拒否する
 export async function rejectApplication(applicationId: string, ownerId: string) {
+  const authError = await verifyActor(ownerId);
+  if (authError) return { error: authError };
+
   const { data: app } = await adminSupabase
     .from("task_applications")
     .select(`

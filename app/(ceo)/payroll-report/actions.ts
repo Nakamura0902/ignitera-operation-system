@@ -3,8 +3,12 @@
 import { adminSupabase } from "@/lib/supabase/admin";
 import { writeAuditLog } from "@/lib/audit-log";
 import { createNotification } from "@/lib/notifications";
+import { verifyCeoOrAdmin } from "@/lib/api-auth";
 
 export async function approvePayroll(payrollEstimateId: string, approvedByUserId: string) {
+  const authError = await verifyCeoOrAdmin(approvedByUserId);
+  if (authError) return { error: authError };
+
   const { data: estimate, error: fetchError } = await adminSupabase
     .from("payroll_estimates")
     .select("user_id, year, month, total_estimate, status")
@@ -68,6 +72,9 @@ export async function approveAllPayrolls(payrollEstimateIds: string[], approvedB
 
 // 今月分の給与見込みをスコア履歴から計算してDBに一括保存
 export async function generatePayrollEstimates(year: number, month: number, generatedBy: string) {
+  const authError = await verifyCeoOrAdmin(generatedBy);
+  if (authError) return { error: authError };
+
   const startOfMonth = new Date(year, month - 1, 1).toISOString();
   const endOfMonth = new Date(year, month, 0, 23, 59, 59).toISOString();
 

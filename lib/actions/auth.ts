@@ -9,12 +9,16 @@ export async function loginWithEmployeeId(employeeId: string, password: string) 
 
   const { data: userData } = await adminSupabase
     .from("users")
-    .select("email")
+    .select("email, is_active")
     .eq("employee_id", trimmedId)
     .single();
 
   if (!userData?.email) {
     return { error: "社員IDが見つかりません" };
+  }
+
+  if (!userData.is_active) {
+    return { error: "このアカウントは無効化されています。管理者にお問い合わせください" };
   }
 
   const supabase = await createClient();
@@ -42,7 +46,7 @@ export async function setupEmployee(
   email: string,
   password: string,
   fullName: string,
-  departmentId: string | null
+  position: "manager" | "employee"
 ) {
   // Check email not already used in public.users
   const { data: existing } = await adminSupabase
@@ -69,11 +73,12 @@ export async function setupEmployee(
   if (match) nextNum = parseInt(match[1], 10) + 1;
   const employeeId = `GTA${String(nextNum).padStart(4, "0")}`;
 
-  // Get employee role id
+  // 役職に応じたロールを取得（マネージャー → admin / 社員 → employee）
+  const roleName = position === "manager" ? "admin" : "employee";
   const { data: roleData } = await adminSupabase
     .from("roles")
     .select("id")
-    .eq("name", "employee")
+    .eq("name", roleName)
     .single();
 
   // Create Supabase auth user
@@ -87,14 +92,14 @@ export async function setupEmployee(
     return { error: signUpError?.message ?? "アカウント作成に失敗しました" };
   }
 
-  // Insert into public.users
+  // Insert into public.users（担当業務は登録後に設定画面で選択する）
   const { error: insertError } = await adminSupabase.from("users").insert({
     id: authData.user.id,
     email: email.trim().toLowerCase(),
     full_name: fullName.trim() || "未設定",
     role_id: roleData?.id ?? null,
     employee_id: employeeId,
-    department_id: departmentId || null,
+    department_id: null,
   });
 
   if (insertError) {

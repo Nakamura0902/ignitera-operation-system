@@ -3,8 +3,12 @@
 import { adminSupabase } from "@/lib/supabase/admin";
 import { writeAuditLog } from "@/lib/audit-log";
 import { createNotification } from "@/lib/notifications";
+import { verifyCeoOrAdmin } from "@/lib/api-auth";
 
 export async function approveMarketListing(listingId: string, approvedByUserId: string) {
+  const authError = await verifyCeoOrAdmin(approvedByUserId);
+  if (authError) return { error: authError };
+
   const { data: listing } = await adminSupabase
     .from("task_market_listings")
     .select("listed_by, task_id")
@@ -50,6 +54,9 @@ export async function approveMarketListing(listingId: string, approvedByUserId: 
 }
 
 export async function rejectMarketListing(listingId: string, rejectedByUserId: string, reason?: string) {
+  const authError = await verifyCeoOrAdmin(rejectedByUserId);
+  if (authError) return { error: authError };
+
   const { data: listing } = await adminSupabase
     .from("task_market_listings")
     .select("listed_by")
