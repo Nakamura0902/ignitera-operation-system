@@ -7,7 +7,7 @@ import type { NextRequest } from "next/server";
 const CEO_ROUTES = [
   "/dashboard",
   "/ai-secretary",
-  "/departments",
+  "/direct-task",
   "/reports",
   "/task-scores",
   "/task-market-monitor",

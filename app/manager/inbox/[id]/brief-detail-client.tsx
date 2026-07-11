@@ -61,6 +61,7 @@ export default function BriefDetailClient({
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high" | "urgent">("medium");
   const [dueDate, setDueDate] = useState("");
+  const [revenue, setRevenue] = useState("");
   const [scope, setScope] = useState<"managed" | "all">(managerSpecialty ? "managed" : "all");
   const [assignedTo, setAssignedTo] = useState("");
   const [checklist, setChecklist] = useState<{ title: string; weight: number }[]>([]);
@@ -95,6 +96,7 @@ export default function BriefDetailClient({
           priority,
           dueDate: dueDate || undefined,
           assignedTo,
+          revenueAmount: Number(revenue.replace(/[,\s]/g, "")) || 0,
           checklist,
         },
         userId
@@ -108,6 +110,7 @@ export default function BriefDetailClient({
         setDescription("");
         setPriority("medium");
         setDueDate("");
+        setRevenue("");
         setAssignedTo("");
         setChecklist([]);
         if (status === "sent") setStatus("in_progress");
@@ -226,7 +229,7 @@ export default function BriefDetailClient({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-700 truncate">{t.title}</p>
-                  <p className="text-[10px] text-slate-400">担当: {t.assignee}{t.dueDate ? ` · 期限: ${t.dueDate}` : ""}</p>
+                  <p className="text-[10px] text-slate-400">担当: {t.assignee}{t.revenue > 0 ? ` · 売上 ¥${t.revenue.toLocaleString()}` : ""}{t.dueDate ? ` · 期限: ${t.dueDate}` : ""}</p>
                 </div>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getPriorityColor(t.priority)}`}>
                   {getPriorityLabel(t.priority)}
@@ -278,6 +281,18 @@ export default function BriefDetailClient({
               <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
                 className="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400" />
             </div>
+          </div>
+
+          {/* 売上額 */}
+          <div>
+            <label className="text-xs font-semibold text-slate-500">このタスクで発生する売上（任意）</label>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-sm text-slate-500">¥</span>
+              <input value={revenue} onChange={(e) => setRevenue(e.target.value)} inputMode="numeric"
+                placeholder="例: 300000"
+                className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400" />
+            </div>
+            <p className="text-[10px] text-slate-400 mt-1">完了時に今月の売上目標の達成分として集計されます</p>
           </div>
 
           {/* 担当社員の指名 */}

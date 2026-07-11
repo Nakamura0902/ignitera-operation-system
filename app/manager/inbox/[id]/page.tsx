@@ -12,6 +12,7 @@ export interface BriefTaskRow {
   progress: number;
   dueDate: string | null;
   assignee: string;
+  revenue: number;
 }
 
 export interface EmployeeOption {
@@ -40,7 +41,7 @@ export default async function BriefDetailPage({
   const [{ data: taskData }, { data: empData }] = await Promise.all([
     adminSupabase
       .from("tasks")
-      .select("id, title, priority, status, progress_rate, due_date, users!tasks_assigned_to_fkey ( full_name )")
+      .select("id, title, priority, status, progress_rate, due_date, revenue_amount, users!tasks_assigned_to_fkey ( full_name )")
       .eq("directive_id", id)
       .order("created_at", { ascending: false }),
     adminSupabase
@@ -59,6 +60,7 @@ export default async function BriefDetailPage({
     progress: t.progress_rate ?? 0,
     dueDate: t.due_date ? formatJstDateTime(t.due_date) : null,
     assignee: t.users?.full_name ?? "未割り当て",
+    revenue: Number(t.revenue_amount ?? 0),
   }));
 
   const employees: EmployeeOption[] = (empData ?? []).map((e) => ({

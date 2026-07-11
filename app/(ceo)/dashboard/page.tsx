@@ -4,6 +4,25 @@ import {
   TrendingUp, Receipt, ChevronRight, Send, Zap,
 } from "lucide-react";
 import { adminSupabase } from "@/lib/supabase/admin";
+import { jstYearMonth, jstMonthRange } from "@/lib/format-date";
+import GoalCard from "./goal-card";
+
+// 今月の売上目標と達成売上（完了タスクの売上合計）
+async function fetchRevenueGoal() {
+  const { year, month } = jstYearMonth();
+  const { start, end } = jstMonthRange(year, month);
+
+  const [{ data: targetRow }, { data: completed }] = await Promise.all([
+    adminSupabase.from("monthly_targets").select("target_revenue").eq("year", year).eq("month", month).maybeSingle(),
+    adminSupabase.from("tasks").select("revenue_amount").eq("status", "completed").gte("updated_at", start).lt("updated_at", end),
+  ]);
+
+  const target = Number((targetRow as { target_revenue?: number } | null)?.target_revenue ?? 0);
+  const achieved = (completed ?? []).reduce(
+    (s, t) => s + Number((t as { revenue_amount?: number }).revenue_amount ?? 0), 0
+  );
+  return { month, target, achieved };
+}
 
 async function fetchCeoKpi() {
   const now = new Date();
@@ -165,10 +184,11 @@ const flowSteps = [
 ];
 
 export default async function CeoDashboardPage() {
-  const [ceoKpi, approvalItems, deptCounts] = await Promise.all([
+  const [ceoKpi, approvalItems, deptCounts, revenueGoal] = await Promise.all([
     fetchCeoKpi(),
     fetchApprovalItems(),
     fetchManagerTaskCounts(),
+    fetchRevenueGoal(),
   ]);
 
   return (
@@ -192,6 +212,9 @@ export default async function CeoDashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* 今月の売上目標と進捗 */}
+      <GoalCard month={revenueGoal.month} target={revenueGoal.target} achieved={revenueGoal.achieved} />
 
       {/* AI秘書 指示バー */}
       <div className="rounded-2xl p-5 border border-blue-200"

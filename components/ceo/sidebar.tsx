@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Bot, BarChart3, Star, ShoppingBag,
-  Wallet, ShieldCheck, Settings, Zap, LogOut, Users, Menu, X,
+  Wallet, ShieldCheck, Settings, Zap, LogOut, Users, Menu, X, ClipboardList,
 } from "lucide-react";
 
 export interface CeoSidebarUser {
@@ -16,6 +16,7 @@ export interface CeoSidebarUser {
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "ホーム" },
   { href: "/ai-secretary", icon: Bot, label: "AI秘書", badge: "指示" },
+  { href: "/direct-task", icon: ClipboardList, label: "タスク依頼" },
   { href: "/reports", icon: BarChart3, label: "レポート" },
 ];
 

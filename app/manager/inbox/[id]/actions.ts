@@ -56,6 +56,7 @@ export interface CreateTaskInput {
   priority: "low" | "medium" | "high" | "urgent";
   dueDate?: string;
   assignedTo: string;
+  revenueAmount?: number;
   checklist?: { title: string; weight: number }[];
 }
 
@@ -76,6 +77,7 @@ export async function createTaskFromDirective(input: CreateTaskInput, userId: st
       assigned_to: input.assignedTo,
       created_by: userId,
       directive_id: input.directiveId,
+      revenue_amount: input.revenueAmount && input.revenueAmount > 0 ? input.revenueAmount : 0,
       status: "pending",
       progress_rate: 0,
     })
