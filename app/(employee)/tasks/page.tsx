@@ -8,7 +8,6 @@ async function fetchTasks(userId: string): Promise<DbTask[]> {
     .from("tasks")
     .select(`
       id, title, status, priority, progress_rate, due_date, provisional_score,
-      departments ( display_name ),
       task_scores ( difficulty, effort, contribution ),
       users!tasks_assigned_to_fkey ( full_name )
     `)
@@ -27,7 +26,7 @@ async function fetchTasks(userId: string): Promise<DbTask[]> {
     due_date: t.due_date,
     provisional_score: t.provisional_score,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    department_name: (t.departments as any)?.display_name ?? "未分類",
+    department_name: "—",
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     assignee_name: (t.users as any)?.full_name ?? "未割り当て",
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

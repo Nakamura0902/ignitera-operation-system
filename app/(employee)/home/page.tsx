@@ -52,7 +52,6 @@ async function fetchHomeData(userId: string) {
       .from("tasks")
       .select(`
         id, title, status, priority, progress_rate, due_date, provisional_score,
-        departments ( display_name ),
         users!tasks_assigned_to_fkey ( full_name ),
         task_scores ( difficulty, effort, contribution, urgency, quality_risk )
       `)
@@ -78,7 +77,6 @@ async function fetchHomeData(userId: string) {
   const allTasks = (tasksResult.data ?? []) as {
     id: string; title: string; status: string; priority: string; progress_rate: number;
     due_date: string | null; provisional_score: number | null;
-    departments: { display_name?: string } | null;
     users: { full_name?: string } | null;
     task_scores: { difficulty?: number; effort?: number; contribution?: number; urgency?: number; quality_risk?: number } | null;
   }[];
@@ -97,7 +95,6 @@ async function fetchHomeData(userId: string) {
       priority: t.priority,
       progress: t.progress_rate,
       dueDate: t.due_date ?? "",
-      department: t.departments?.display_name ?? "未分類",
       assignee: t.users?.full_name ?? "未割り当て",
       points: t.provisional_score ?? 0,
       difficulty: t.task_scores?.difficulty ?? 3,
@@ -221,9 +218,6 @@ export default async function HomePage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${getPriorityColor(task.priority)}`}>
                         {getPriorityLabel(task.priority)}
-                      </span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">
-                        {task.department}
                       </span>
                     </div>
                     <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">

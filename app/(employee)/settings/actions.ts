@@ -21,32 +21,39 @@ export async function updateDisplayName(userId: string, newName: string) {
   return { success: true };
 }
 
-// 担当業務（複数部門）を更新する。users.department_idには先頭の部門を入れて既存機能と互換を保つ
-export async function updateWorkDepartments(userId: string, departmentIds: string[]) {
+// マネージャーの専門を更新する。1専門1マネージャーのため重複を防ぐ。
+export async function updateSpecialty(userId: string, specialty: string) {
   const authError = await verifyActor(userId);
   if (authError) return { error: authError };
 
-  if (departmentIds.length === 0) {
-    return { error: "担当業務を1つ以上選択してください" };
-  }
+  const value = specialty.trim();
+  if (!value) return { error: "専門を選択してください" };
 
-  const { error: deleteError } = await adminSupabase
-    .from("user_departments")
-    .delete()
-    .eq("user_id", userId);
-
-  if (deleteError) return { error: "担当業務の更新に失敗しました" };
-
-  const { error: insertError } = await adminSupabase
-    .from("user_departments")
-    .insert(departmentIds.map((departmentId) => ({ user_id: userId, department_id: departmentId })));
-
-  if (insertError) return { error: "担当業務の更新に失敗しました" };
-
-  await adminSupabase
+  // 呼び出し元がマネージャー(内部ロール'admin')であることを確認
+  const { data: me } = await adminSupabase
     .from("users")
-    .update({ department_id: departmentIds[0] })
+    .select("roles(name)")
+    .eq("id", userId)
+    .single();
+  const roleName = (me?.roles as { name?: string } | null)?.name;
+  if (roleName !== "admin") return { error: "専門はマネージャーのみ設定できます" };
+
+  // 同じ専門を持つ別のマネージャーがいないか確認
+  const { data: dup } = await adminSupabase
+    .from("users")
+    .select("id, roles!inner(name)")
+    .eq("specialty", value)
+    .eq("roles.name", "admin")
+    .neq("id", userId)
+    .maybeSingle();
+  if (dup) return { error: "この専門はすでに別のマネージャーが担当しています" };
+
+  const { error } = await adminSupabase
+    .from("users")
+    .update({ specialty: value })
     .eq("id", userId);
+
+  if (error) return { error: "専門の更新に失敗しました" };
 
   revalidatePath("/settings");
   revalidatePath("/", "layout");

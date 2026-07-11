@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
   const { error } = await adminSupabase.from("reports").insert({
     title,
-    content: { instruction, result, summary: result?.summary ?? "" },
+    content: { instruction, result, summary: result?.organizedSummary ?? "" },
     type: "ad_hoc",
     status: "published",
     created_by: user.id,

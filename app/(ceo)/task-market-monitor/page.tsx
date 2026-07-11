@@ -33,8 +33,7 @@ async function fetchMarketListings(): Promise<MarketListing[]> {
       users!task_market_listings_listed_by_fkey (full_name),
       tasks (
         title,
-        due_date,
-        departments (display_name)
+        due_date
       ),
       task_applications (
         id,
@@ -79,7 +78,7 @@ async function fetchMarketListings(): Promise<MarketListing[]> {
       taskTitle: task?.title ?? "タスク名不明",
       lister: lister?.full_name ?? "未設定",
       applicant: displayApplicant?.users?.full_name ?? null,
-      department: task?.departments?.display_name ?? "部門不明",
+      department: "—",
       remainingPoints: row.remaining_points,
       progressAtListing: row.progress_at_listing,
       dueDate: task?.due_date ?? "",

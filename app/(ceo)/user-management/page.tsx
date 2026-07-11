@@ -8,8 +8,8 @@ export interface UserRow {
   employee_id: string | null;
   is_active: boolean;
   created_at: string;
+  specialty: string | null;
   roles: { id: string; name: string; display_name: string } | null;
-  departments: { id: string; name: string; display_name: string } | null;
 }
 
 export interface RoleOption {
@@ -18,16 +18,10 @@ export interface RoleOption {
   display_name: string;
 }
 
-export interface DeptOption {
-  id: string;
-  name: string;
-  display_name: string;
-}
-
 async function fetchUsers(): Promise<UserRow[]> {
   const { data } = await adminSupabase
     .from("users")
-    .select("id, full_name, email, employee_id, is_active, created_at, roles(id, name, display_name), departments(id, name, display_name)")
+    .select("id, full_name, email, employee_id, is_active, created_at, specialty, roles(id, name, display_name)")
     .order("created_at", { ascending: true });
 
   return (data ?? []).map((row) => ({
@@ -37,8 +31,8 @@ async function fetchUsers(): Promise<UserRow[]> {
     employee_id: row.employee_id ?? null,
     is_active: row.is_active ?? true,
     created_at: row.created_at,
+    specialty: (row as { specialty?: string | null }).specialty ?? null,
     roles: row.roles as unknown as UserRow["roles"],
-    departments: row.departments as unknown as UserRow["departments"],
   }));
 }
 
@@ -50,26 +44,8 @@ async function fetchRoles(): Promise<RoleOption[]> {
   return data ?? [];
 }
 
-async function fetchDepartments(): Promise<DeptOption[]> {
-  const { data } = await adminSupabase
-    .from("departments")
-    .select("id, name, display_name")
-    .order("name");
-  return data ?? [];
-}
-
 export default async function UserManagementPage() {
-  const [users, roles, departments] = await Promise.all([
-    fetchUsers(),
-    fetchRoles(),
-    fetchDepartments(),
-  ]);
+  const [users, roles] = await Promise.all([fetchUsers(), fetchRoles()]);
 
-  return (
-    <UserManagementClient
-      initialUsers={users}
-      roles={roles}
-      departments={departments}
-    />
-  );
+  return <UserManagementClient initialUsers={users} roles={roles} />;
 }

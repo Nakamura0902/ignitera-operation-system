@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react";
 import {
-  Bot, Send, Mic, Zap, ChevronRight, Tag, Building2,
-  ClipboardList, AlertCircle, CheckCircle2, FileText, Users,
-  Loader2, CheckCheck,
+  Bot, Send, Mic, Zap, ChevronRight, Tag, UserCheck,
+  AlertCircle, FileText, Loader2, CheckCheck,
 } from "lucide-react";
 
 const templates = [
@@ -18,16 +17,18 @@ const templates = [
 
 interface AiResult {
   category: string;
-  departments: string[];
-  summary: string;
-  actions: { label: string; dept: string; done: boolean }[];
+  targetSpecialty: string;
+  organizedTitle: string;
+  organizedSummary: string;
+  organizedBody: string;
   checkItems: string[];
 }
 
-interface TaskCreated {
-  task_count: number;
-  report_id: string;
-  tasks: { id: string; title: string }[];
+interface DirectiveSent {
+  directive_id: string;
+  assigned: boolean;
+  manager_name: string | null;
+  specialty: string | null;
 }
 
 interface HistoryItem {
@@ -49,8 +50,8 @@ export default function AiSecretaryClient({
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AiResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [taskLoading, setTaskLoading] = useState(false);
-  const [taskCreated, setTaskCreated] = useState<TaskCreated | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState<DirectiveSent | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>(initialHistory);
 
   // 初回マウント時に最新履歴を取得（SSRデータが古い可能性があるため）
@@ -68,7 +69,7 @@ export default function AiSecretaryClient({
     setLoading(true);
     setError(null);
     setResult(null);
-    setTaskCreated(null);
+    setSent(null);
 
     try {
       const res = await fetch("/api/ai-chat", {
@@ -117,22 +118,23 @@ export default function AiSecretaryClient({
     }
   }
 
-  async function handleCreateTasks() {
-    if (!result || taskLoading) return;
-    setTaskLoading(true);
+  async function handleSendToManager() {
+    if (!result || sending) return;
+    setSending(true);
+    setError(null);
     try {
-      const res = await fetch("/api/tasks/from-ai-secretary", {
+      const res = await fetch("/api/directives", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ instruction, result }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "タスク作成に失敗しました");
-      setTaskCreated(data);
+      if (!res.ok) throw new Error(data.error ?? "送信に失敗しました");
+      setSent(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "タスク作成に失敗しました");
+      setError(e instanceof Error ? e.message : "送信に失敗しました");
     } finally {
-      setTaskLoading(false);
+      setSending(false);
     }
   }
 
@@ -144,7 +146,7 @@ export default function AiSecretaryClient({
         <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
           <Bot size={20} className="text-blue-600" /> AI秘書 — 指示入力
         </h1>
-        <p className="text-slate-500 text-sm mt-0.5">社長からの指示を受け取り、部門AIへ自動的に振り分けます</p>
+        <p className="text-slate-500 text-sm mt-0.5">指示を整理・要約し、担当マネージャーに振り分けて届けます</p>
       </div>
 
       <div className="grid grid-cols-3 gap-6">
@@ -153,7 +155,7 @@ export default function AiSecretaryClient({
 
           <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl w-fit">
             <AlertCircle size={14} className="text-amber-600" />
-            <span className="text-xs font-bold text-amber-700">この画面は社長専用です — 社員は閲覧・入力できません</span>
+            <span className="text-xs font-bold text-amber-700">この画面は社長専用です — マネージャー・社員は閲覧・入力できません</span>
           </div>
 
           {/* 指示入力 */}
@@ -195,7 +197,7 @@ export default function AiSecretaryClient({
                 style={{ background: "linear-gradient(135deg, #2563eb, #7c3aed)" }}>
                 {loading
                   ? <><Loader2 size={14} className="animate-spin" /> 処理中...</>
-                  : <><Send size={14} /> 送信して指示する</>
+                  : <><Send size={14} /> 送信して整理する</>
                 }
               </button>
             </div>
@@ -266,50 +268,36 @@ export default function AiSecretaryClient({
                   <span className="text-[10px] px-2 py-0.5 bg-emerald-500 text-white rounded-full">完了</span>
                 </div>
 
-                <div className="flex items-center gap-2 mb-3 p-3 bg-white/70 rounded-xl">
-                  <Tag size={12} className="text-purple-600" />
-                  <div>
-                    <p className="text-[10px] text-slate-400">分類</p>
-                    <p className="text-xs font-bold text-slate-800">{result.category}</p>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <div className="flex items-center gap-2 p-3 bg-white/70 rounded-xl">
+                    <Tag size={12} className="text-purple-600 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] text-slate-400">分類</p>
+                      <p className="text-xs font-bold text-slate-800 truncate">{result.category}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 p-3 bg-white/70 rounded-xl">
+                    <UserCheck size={12} className="text-teal-600 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] text-slate-400">振り分け先</p>
+                      <p className="text-xs font-bold text-teal-700 truncate">{result.targetSpecialty || "未判定"}</p>
+                    </div>
                   </div>
                 </div>
 
                 <div className="mb-3 p-3 bg-white/70 rounded-xl">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <Building2 size={12} className="text-blue-600" />
-                    <p className="text-[10px] text-slate-500 font-semibold">関係部門</p>
-                  </div>
-                  <div className="flex gap-1 flex-wrap">
-                    {result.departments.map((d) => (
-                      <span key={d} className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">{d}</span>
-                    ))}
-                  </div>
+                  <p className="text-[10px] text-slate-500 font-semibold mb-1">件名</p>
+                  <p className="text-xs font-bold text-slate-800 leading-relaxed">{result.organizedTitle}</p>
                 </div>
 
                 <div className="mb-3 p-3 bg-white/70 rounded-xl">
                   <p className="text-[10px] text-slate-500 font-semibold mb-1">AIサマリー</p>
-                  <p className="text-xs text-slate-700 leading-relaxed">{result.summary}</p>
+                  <p className="text-xs text-slate-700 leading-relaxed">{result.organizedSummary}</p>
                 </div>
 
                 <div className="mb-3 p-3 bg-white/70 rounded-xl">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <ClipboardList size={12} className="text-blue-600" />
-                    <p className="text-[10px] text-slate-500 font-semibold">次のアクション</p>
-                  </div>
-                  <div className="space-y-2">
-                    {result.actions.map((a, i) => (
-                      <div key={i} className="flex items-start gap-2">
-                        {a.done
-                          ? <CheckCircle2 size={12} className="text-emerald-500 shrink-0 mt-0.5" />
-                          : <div className="w-3 h-3 rounded-full border-2 border-blue-300 shrink-0 mt-0.5" />
-                        }
-                        <div>
-                          <p className="text-[10px] text-slate-700">{a.label}</p>
-                          <p className="text-[9px] text-slate-400">{a.dept}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="text-[10px] text-slate-500 font-semibold mb-1">マネージャー向け整理内容</p>
+                  <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{result.organizedBody}</p>
                 </div>
 
                 {result.checkItems.length > 0 && (
@@ -332,48 +320,39 @@ export default function AiSecretaryClient({
 
               {/* アクションボタン */}
               <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-                <h2 className="text-sm font-bold text-slate-700 mb-3">このまま実行する</h2>
+                <h2 className="text-sm font-bold text-slate-700 mb-3">マネージャーに届ける</h2>
 
-                {taskCreated && (
-                  <div className="mb-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <CheckCheck size={14} className="text-emerald-600" />
-                      <p className="text-xs font-bold text-emerald-700">
-                        {taskCreated.task_count}件のタスクを作成しました
+                {sent && (
+                  <div className={`mb-3 p-3 rounded-xl border ${
+                    sent.assigned ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      {sent.assigned
+                        ? <CheckCheck size={14} className="text-emerald-600" />
+                        : <AlertCircle size={14} className="text-amber-600" />}
+                      <p className={`text-xs font-bold ${sent.assigned ? "text-emerald-700" : "text-amber-700"}`}>
+                        {sent.assigned
+                          ? `${sent.manager_name ?? "担当マネージャー"}さん（${sent.specialty}）に送りました`
+                          : "該当専門のマネージャーが未登録のため、未割り当てで保存しました"}
                       </p>
-                    </div>
-                    <div className="space-y-0.5">
-                      {taskCreated.tasks.map((t) => (
-                        <p key={t.id} className="text-[10px] text-emerald-600 pl-1">· {t.title}</p>
-                      ))}
                     </div>
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <button
-                    onClick={handleCreateTasks}
-                    disabled={taskLoading || !!taskCreated}
-                    className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed">
-                    {taskLoading
-                      ? <><Loader2 size={14} className="animate-spin" /> タスク作成中...</>
-                      : taskCreated
-                      ? <><CheckCheck size={14} /> タスク作成済み</>
-                      : <><ClipboardList size={14} /> タスク化して部門AIに振り分ける</>
-                    }
-                  </button>
-
-                  {[
-                    { label: "案件として正式登録する", icon: <FileText size={14} />, color: "bg-purple-600 text-white" },
-                    { label: "提案書ドラフトを作成する", icon: <FileText size={14} />, color: "bg-emerald-600 text-white" },
-                    { label: "部門担当者に通知する", icon: <Users size={14} />, color: "bg-amber-600 text-white" },
-                    { label: "保留にする（後で確認）", icon: <AlertCircle size={14} />, color: "bg-slate-200 text-slate-600" },
-                  ].map((b, i) => (
-                    <button key={i} disabled className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium opacity-40 cursor-not-allowed ${b.color}`}>
-                      {b.icon} {b.label}
-                    </button>
-                  ))}
-                </div>
+                <button
+                  onClick={handleSendToManager}
+                  disabled={sending || !!sent}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium justify-center transition-colors text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                  style={{ background: sent ? "#94a3b8" : "linear-gradient(135deg, #0d9488, #059669)" }}>
+                  {sending
+                    ? <><Loader2 size={14} className="animate-spin" /> 送信中...</>
+                    : sent
+                    ? <><CheckCheck size={14} /> 送信済み</>
+                    : <><Send size={14} /> このブリーフをマネージャーに送る</>}
+                </button>
+                <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
+                  <FileText size={11} /> タスクの作成・担当社員の指名はマネージャーが行います
+                </p>
               </div>
             </>
           )}

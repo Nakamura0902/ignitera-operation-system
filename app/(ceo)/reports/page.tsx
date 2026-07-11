@@ -34,52 +34,38 @@ async function fetchReportsData() {
     amount,
   }));
 
-  // 部門別パフォーマンス
-  const { data: departments } = await adminSupabase
-    .from("departments")
-    .select("id, display_name");
+  // マネージャー別パフォーマンス（マネージャーが作成したタスクの完了率）
+  const { data: managers } = await adminSupabase
+    .from("users")
+    .select("id, full_name, specialty, roles!inner(name)")
+    .eq("is_active", true)
+    .eq("roles.name", "admin");
 
   const reportDepartments: ReportDept[] = await Promise.all(
-    (departments ?? []).map(async (dept) => {
-      const [{ count: totalTasks }, { count: completedTasks }, { data: invoices }] = await Promise.all([
+    (managers ?? []).map(async (m) => {
+      const [{ count: totalTasks }, { count: completedTasks }] = await Promise.all([
         adminSupabase
           .from("tasks")
           .select("*", { count: "exact", head: true })
-          .eq("department_id", dept.id),
+          .eq("created_by", m.id),
         adminSupabase
           .from("tasks")
           .select("*", { count: "exact", head: true })
-          .eq("department_id", dept.id)
+          .eq("created_by", m.id)
           .eq("status", "completed"),
-        adminSupabase
-          .from("projects")
-          .select("id")
-          .eq("department_id", dept.id)
-          .then(async ({ data: projects }) => {
-            if (!projects || projects.length === 0) return { data: [] };
-            const projectIds = projects.map((p) => p.id);
-            return adminSupabase
-              .from("invoices")
-              .select("total_amount")
-              .in("project_id", projectIds)
-              .eq("status", "paid");
-          }),
       ]);
-
-      const revenue = (invoices ?? []).reduce(
-        (s, inv) => s + Number(inv.total_amount ?? 0),
-        0
-      );
 
       const total = totalTasks ?? 0;
       const completed = completedTasks ?? 0;
       const achievement = total > 0 ? Math.round((completed / total) * 100) : 0;
+      const name = (m as { full_name?: string }).full_name ?? "マネージャー";
+      const specialty = (m as { specialty?: string | null }).specialty;
 
       return {
-        dept: dept.display_name,
+        dept: specialty ? `${name}（${specialty}）` : name,
         tasks: total,
         completed,
-        revenue,
+        revenue: 0,
         achievement,
       };
     })
@@ -130,7 +116,7 @@ export default async function ReportsPage() {
         {[
           { label: "今月の売上", value: `¥${(totalRevenue / 10000).toFixed(0)}万`, sub: `前月比 ${isGrowthPositive ? "+" : ""}${growthPct}%`, color: "#059669", up: isGrowthPositive },
           { label: "タスク完了率", value: `${totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0}%`, sub: `${totalCompleted}/${totalTasks}タスク`, color: "#2563eb" },
-          { label: "全社達成率", value: `${avgAchievement}%`, sub: "部門平均", color: "#7c3aed" },
+          { label: "全社達成率", value: `${avgAchievement}%`, sub: "マネージャー平均", color: "#7c3aed" },
           { label: "AIによる提案", value: `${aiProposals}件`, sub: "今週の改善提案", color: "#f59e0b" },
         ].map(({ label, value, sub, color, up }) => (
           <div key={label} className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
@@ -191,12 +177,12 @@ export default async function ReportsPage() {
 
           {/* 部門別パフォーマンステーブル */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-            <h2 className="text-sm font-bold text-slate-700 mb-4">部門別パフォーマンス</h2>
+            <h2 className="text-sm font-bold text-slate-700 mb-4">マネージャー別パフォーマンス</h2>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-xs text-slate-400 border-b border-slate-100">
-                    <th className="text-left pb-3 font-medium">部門</th>
+                    <th className="text-left pb-3 font-medium">マネージャー</th>
                     <th className="text-center pb-3 font-medium">タスク数</th>
                     <th className="text-center pb-3 font-medium">完了</th>
                     <th className="text-right pb-3 font-medium">売上貢献</th>

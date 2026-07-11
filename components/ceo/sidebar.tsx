@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Bot, Code2, TrendingUp, FolderKanban,
-  Receipt, ClipboardList, BarChart3, Star, ShoppingBag,
+  LayoutDashboard, Bot, BarChart3, Star, ShoppingBag,
   Wallet, ShieldCheck, Settings, Zap, LogOut, Users,
 } from "lucide-react";
 
@@ -16,11 +15,6 @@ export interface CeoSidebarUser {
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "ホーム" },
   { href: "/ai-secretary", icon: Bot, label: "AI秘書", badge: "指示" },
-  { href: "/departments/development", icon: Code2, label: "開発" },
-  { href: "/departments/sales", icon: TrendingUp, label: "営業" },
-  { href: "/departments/projects", icon: FolderKanban, label: "案件" },
-  { href: "/departments/accounting", icon: Receipt, label: "経理・請求" },
-  { href: "/departments/operations", icon: ClipboardList, label: "事務" },
   { href: "/reports", icon: BarChart3, label: "レポート" },
 ];
 

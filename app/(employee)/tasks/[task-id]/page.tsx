@@ -8,7 +8,6 @@ async function fetchTask(taskId: string): Promise<DbTaskDetail | null> {
     .from("tasks")
     .select(`
       id, title, description, status, priority, progress_rate, due_date, provisional_score,
-      departments ( display_name ),
       task_scores ( difficulty, effort, contribution, urgency, quality_risk ),
       users!tasks_assigned_to_fkey ( full_name ),
       task_checklist_items ( id, title, weight, status, sort_order )
@@ -44,7 +43,7 @@ async function fetchTask(taskId: string): Promise<DbTaskDetail | null> {
     due_date: data.due_date,
     provisional_score: data.provisional_score,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    department_name: (data.departments as any)?.display_name ?? "未分類",
+    department_name: "—",
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     assignee_name: (data.users as any)?.full_name ?? "未割り当て",
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

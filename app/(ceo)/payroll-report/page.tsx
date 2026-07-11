@@ -36,8 +36,7 @@ async function fetchPayrollRows(): Promise<PayrollRow[]> {
       status,
       users (
         full_name,
-        employee_id,
-        departments (display_name)
+        employee_id
       )
     `)
     .eq("year", year)
@@ -57,7 +56,7 @@ async function fetchPayrollRows(): Promise<PayrollRow[]> {
         userId: row.user_id,
         name: user?.full_name ?? "不明",
         employeeId: user?.employee_id ?? "",
-        department: user?.departments?.display_name ?? "部門不明",
+        department: "—",
         confirmedPoints: row.total_score_points,
         pendingPoints: 0,
         baseSalary: Number(row.base_salary),
@@ -76,8 +75,7 @@ async function fetchPayrollRows(): Promise<PayrollRow[]> {
     .select(`
       id,
       full_name,
-      employee_id,
-      departments (display_name)
+      employee_id
     `)
     .eq("is_active", true);
 
@@ -102,14 +100,12 @@ async function fetchPayrollRows(): Promise<PayrollRow[]> {
       );
       const pointReward = totalPoints * 5;
 
-      const dept = user.departments as { display_name?: string } | null;
-
       return {
         id: user.id,
         userId: user.id,
         name: user.full_name ?? "不明",
         employeeId: (user as { employee_id?: string }).employee_id ?? "",
-        department: dept?.display_name ?? "部門不明",
+        department: "—",
         confirmedPoints: totalPoints,
         pendingPoints: 0,
         baseSalary: 0,

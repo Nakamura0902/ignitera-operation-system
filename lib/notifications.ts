@@ -1,6 +1,7 @@
 "use server";
 
 import { adminSupabase } from "@/lib/supabase/admin";
+import { sendPushToUser } from "@/lib/push";
 
 // Type values that match the DB CHECK constraint
 export type NotificationType =
@@ -24,17 +25,8 @@ export interface Notification {
 
 /**
  * 通知を作成する。
- *
- * GMO通知サービスとの接続はこの関数に追加する:
- *   Step 1: DBに保存 (現在の実装)
- *   Step 2: GMO Notification API を呼ぶ (将来実装 — コメント箇所を参照)
- *
- * GMO連携時の実装例:
- *   await fetch("https://api.gmo-notification.example.com/push", {
- *     method: "POST",
- *     headers: { Authorization: `Bearer ${process.env.GMO_NOTIFICATION_API_KEY}` },
- *     body: JSON.stringify({ userId, title, message }),
- *   });
+ *   Step 1: notifications テーブルに保存（アプリ内通知）
+ *   Step 2: Web Push を送信（購読端末があれば。lib/push.ts）
  */
 export async function createNotification(params: {
   userId: string;
@@ -54,8 +46,12 @@ export async function createNotification(params: {
 
   if (error) console.error("[notification] insert error:", error);
 
-  // TODO: GMO通知API連携
-  // await sendGmoPushNotification(params);
+  // アプリ内通知に加えてWeb Pushを送信（購読があれば）
+  await sendPushToUser(params.userId, {
+    title: params.title,
+    message: params.message,
+    url: params.actionUrl,
+  });
 }
 
 export async function getNotifications(userId: string, limit = 50): Promise<Notification[]> {

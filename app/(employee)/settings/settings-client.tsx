@@ -1,15 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Lock, CheckCircle2, AlertCircle, Briefcase } from "lucide-react";
-import { updateDisplayName, updatePassword, updateWorkDepartments } from "./actions";
+import { Pencil, Lock, CheckCircle2, AlertCircle, Target, Bell } from "lucide-react";
+import { updateDisplayName, updatePassword, updateSpecialty } from "./actions";
+import { isPushSupported, getPushSubscribed, enablePush, disablePush } from "@/lib/push-client";
 import type { CurrentUser } from "@/lib/get-current-user";
 
-export interface DepartmentOption {
-  id: string;
-  display_name: string;
-}
+const SPECIALTY_PRESETS = ["営業", "開発", "案件管理", "経理・請求", "事務・オペレーション"];
 
 function StatusMessage({ message, isError }: { message: string; isError: boolean }) {
   return (
@@ -22,14 +20,69 @@ function StatusMessage({ message, isError }: { message: string; isError: boolean
   );
 }
 
+function PushSection() {
+  const [supported, setSupported] = useState(true);
+  const [subscribed, setSubscribed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
+
+  useEffect(() => {
+    setSupported(isPushSupported());
+    getPushSubscribed().then(setSubscribed).catch(() => {});
+  }, []);
+
+  async function toggle() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      if (subscribed) {
+        await disablePush();
+        setSubscribed(false);
+        setMsg({ text: "この端末の通知をオフにしました", error: false });
+      } else {
+        const res = await enablePush();
+        if (res.ok) {
+          setSubscribed(true);
+          setMsg({ text: "この端末で通知を受け取ります", error: false });
+        } else {
+          setMsg({ text: res.error ?? "有効化に失敗しました", error: true });
+        }
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+      <div className="flex items-center gap-2 mb-1">
+        <Bell size={15} className="text-blue-600" />
+        <h2 className="text-sm font-bold text-slate-700">プッシュ通知</h2>
+      </div>
+      <p className="text-xs text-slate-400 mb-4">
+        タスクの割り当てや指示ブリーフの受信をこの端末に通知します。
+        {!supported && "（この端末／ブラウザは通知に対応していません。iPhoneはホーム画面に追加してからお試しください）"}
+      </p>
+      {msg && <div className="mb-3"><StatusMessage message={msg.text} isError={msg.error} /></div>}
+      <button
+        onClick={toggle}
+        disabled={!supported || busy}
+        className={`w-full py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${
+          subscribed ? "bg-slate-200 text-slate-700 hover:bg-slate-300" : "bg-blue-600 text-white hover:bg-blue-700"
+        }`}
+      >
+        {busy ? "処理中..." : subscribed ? "この端末の通知をオフにする" : "この端末で通知をオンにする"}
+      </button>
+    </div>
+  );
+}
+
 export default function SettingsClient({
   user,
-  departments,
-  initialDepartmentIds,
+  initialSpecialty,
 }: {
   user: CurrentUser;
-  departments: DepartmentOption[];
-  initialDepartmentIds: string[];
+  initialSpecialty: string | null;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -38,12 +91,13 @@ export default function SettingsClient({
   const [newName, setNewName] = useState(user.name);
   const [nameMsg, setNameMsg] = useState<{ text: string; error: boolean } | null>(null);
 
-  // 担当業務（複数選択）
-  const [selectedDeptIds, setSelectedDeptIds] = useState<string[]>(initialDepartmentIds);
-  const [deptMsg, setDeptMsg] = useState<{ text: string; error: boolean } | null>(null);
-  const deptChanged =
-    selectedDeptIds.length !== initialDepartmentIds.length ||
-    selectedDeptIds.some((id) => !initialDepartmentIds.includes(id));
+  // 専門（マネージャーのみ）
+  const isPreset = initialSpecialty ? SPECIALTY_PRESETS.includes(initialSpecialty) : true;
+  const [specialtyChoice, setSpecialtyChoice] = useState<string>(
+    initialSpecialty ? (isPreset ? initialSpecialty : "その他") : ""
+  );
+  const [customSpecialty, setCustomSpecialty] = useState(isPreset ? "" : initialSpecialty ?? "");
+  const [specMsg, setSpecMsg] = useState<{ text: string; error: boolean } | null>(null);
 
   // パスワード変更
   const [newPw, setNewPw] = useState("");
@@ -55,9 +109,8 @@ export default function SettingsClient({
     setNameMsg(null);
     startTransition(async () => {
       const result = await updateDisplayName(user.id, newName);
-      if (result.error) {
-        setNameMsg({ text: result.error, error: true });
-      } else {
+      if (result.error) setNameMsg({ text: result.error, error: true });
+      else {
         setNameMsg({ text: "氏名を更新しました", error: false });
         router.refresh();
         setTimeout(() => setNameMsg(null), 3000);
@@ -65,22 +118,17 @@ export default function SettingsClient({
     });
   }
 
-  function toggleDept(deptId: string) {
-    setSelectedDeptIds((prev) =>
-      prev.includes(deptId) ? prev.filter((id) => id !== deptId) : [...prev, deptId]
-    );
-  }
-
-  function handleDeptUpdate() {
-    setDeptMsg(null);
+  function handleSpecialtyUpdate() {
+    setSpecMsg(null);
+    const value = specialtyChoice === "その他" ? customSpecialty.trim() : specialtyChoice;
+    if (!value) return setSpecMsg({ text: "専門を選択してください", error: true });
     startTransition(async () => {
-      const result = await updateWorkDepartments(user.id, selectedDeptIds);
-      if (result.error) {
-        setDeptMsg({ text: result.error, error: true });
-      } else {
-        setDeptMsg({ text: "担当業務を更新しました", error: false });
+      const result = await updateSpecialty(user.id, value);
+      if (result.error) setSpecMsg({ text: result.error, error: true });
+      else {
+        setSpecMsg({ text: "専門を更新しました", error: false });
         router.refresh();
-        setTimeout(() => setDeptMsg(null), 3000);
+        setTimeout(() => setSpecMsg(null), 3000);
       }
     });
   }
@@ -89,9 +137,8 @@ export default function SettingsClient({
     setPwMsg(null);
     startTransition(async () => {
       const result = await updatePassword(newPw, confirmPw);
-      if (result.error) {
-        setPwMsg({ text: result.error, error: true });
-      } else {
+      if (result.error) setPwMsg({ text: result.error, error: true });
+      else {
         setPwMsg({ text: "パスワードを更新しました", error: false });
         setNewPw("");
         setConfirmPw("");
@@ -118,7 +165,7 @@ export default function SettingsClient({
         </div>
         <div className="grid gap-3">
           {[
-            { label: "部署", value: user.department },
+            { label: "区分", value: user.department },
             { label: "社員ID", value: user.employeeId },
             { label: "メールアドレス", value: user.email },
           ].map(({ label, value }) => (
@@ -130,42 +177,40 @@ export default function SettingsClient({
         </div>
       </div>
 
-      {/* 担当業務（複数選択） */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <div className="flex items-center gap-2 mb-1">
-          <Briefcase size={15} className="text-blue-600" />
-          <h2 className="text-sm font-bold text-slate-700">担当業務</h2>
+      {/* 専門（マネージャーのみ） */}
+      {user.role === "manager" && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <div className="flex items-center gap-2 mb-1">
+            <Target size={15} className="text-teal-600" />
+            <h2 className="text-sm font-bold text-slate-700">専門（マネージャー専用）</h2>
+          </div>
+          <p className="text-xs text-slate-400 mb-4">
+            あなたが管轄する専門領域を1つ選択してください。社長からの指示ブリーフはこの専門に基づいてあなた宛に振り分けられます。1つの専門につき担当マネージャーは1人です。
+          </p>
+          <div className="space-y-2 mb-3">
+            {[...SPECIALTY_PRESETS, "その他"].map((opt) => (
+              <label key={opt} className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                <input type="radio" name="specialty" checked={specialtyChoice === opt}
+                  onChange={() => setSpecialtyChoice(opt)} className="accent-teal-600" />
+                {opt}
+                {opt === "その他" && specialtyChoice === "その他" && (
+                  <input value={customSpecialty} onChange={(e) => setCustomSpecialty(e.target.value)}
+                    className="ml-2 px-3 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-teal-400"
+                    placeholder="自由入力" />
+                )}
+              </label>
+            ))}
+          </div>
+          {specMsg && <div className="mb-3"><StatusMessage message={specMsg.text} isError={specMsg.error} /></div>}
+          <button onClick={handleSpecialtyUpdate} disabled={isPending}
+            className="w-full py-2.5 bg-teal-600 text-white rounded-xl text-sm font-medium hover:bg-teal-700 transition-colors disabled:opacity-50">
+            {isPending ? "更新中..." : "専門を更新する"}
+          </button>
         </div>
-        <p className="text-xs text-slate-400 mb-4">担当する業務を選択してください（複数選択可）。タスクの割り振りに使われます。</p>
-        <div className="flex flex-wrap gap-2 mb-3">
-          {departments.map((dept) => {
-            const selected = selectedDeptIds.includes(dept.id);
-            return (
-              <button
-                key={dept.id}
-                type="button"
-                onClick={() => toggleDept(dept.id)}
-                disabled={isPending}
-                className={`px-4 py-2 rounded-full text-sm font-medium border transition-all disabled:opacity-50 ${
-                  selected
-                    ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-blue-300"
-                }`}
-              >
-                {selected && "✓ "}{dept.display_name}
-              </button>
-            );
-          })}
-        </div>
-        {deptMsg && <StatusMessage message={deptMsg.text} isError={deptMsg.error} />}
-        <button
-          onClick={handleDeptUpdate}
-          disabled={isPending || !deptChanged || selectedDeptIds.length === 0}
-          className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 mt-2"
-        >
-          {isPending ? "更新中..." : "担当業務を更新する"}
-        </button>
-      </div>
+      )}
+
+      {/* プッシュ通知 */}
+      <PushSection />
 
       {/* 氏名変更 */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
@@ -176,21 +221,13 @@ export default function SettingsClient({
         <div className="space-y-3">
           <div>
             <label className="text-xs text-slate-500 mb-1 block">新しい氏名</label>
-            <input
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
+            <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)}
               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 transition-colors"
-              placeholder="例）山田 太郎"
-              disabled={isPending}
-            />
+              placeholder="例）山田 太郎" disabled={isPending} />
           </div>
           {nameMsg && <StatusMessage message={nameMsg.text} isError={nameMsg.error} />}
-          <button
-            onClick={handleNameUpdate}
-            disabled={isPending || !newName.trim() || newName === user.name}
-            className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-          >
+          <button onClick={handleNameUpdate} disabled={isPending || !newName.trim() || newName === user.name}
+            className="w-full py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50">
             {isPending ? "更新中..." : "氏名を更新する"}
           </button>
         </div>
@@ -205,39 +242,22 @@ export default function SettingsClient({
         <div className="space-y-3">
           <div>
             <label className="text-xs text-slate-500 mb-1 block">新しいパスワード（8文字以上）</label>
-            <input
-              type={showPw ? "text" : "password"}
-              value={newPw}
-              onChange={(e) => setNewPw(e.target.value)}
+            <input type={showPw ? "text" : "password"} value={newPw} onChange={(e) => setNewPw(e.target.value)}
               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 transition-colors"
-              placeholder="新しいパスワード"
-              disabled={isPending}
-            />
+              placeholder="新しいパスワード" disabled={isPending} />
           </div>
           <div>
             <label className="text-xs text-slate-500 mb-1 block">確認用パスワード</label>
-            <input
-              type={showPw ? "text" : "password"}
-              value={confirmPw}
-              onChange={(e) => setConfirmPw(e.target.value)}
+            <input type={showPw ? "text" : "password"} value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)}
               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-blue-400 transition-colors"
-              placeholder="もう一度入力"
-              disabled={isPending}
-            />
+              placeholder="もう一度入力" disabled={isPending} />
           </div>
-          <button
-            type="button"
-            onClick={() => setShowPw(!showPw)}
-            className="text-xs text-slate-400 hover:text-slate-600"
-          >
+          <button type="button" onClick={() => setShowPw(!showPw)} className="text-xs text-slate-400 hover:text-slate-600">
             {showPw ? "パスワードを隠す" : "パスワードを表示する"}
           </button>
           {pwMsg && <StatusMessage message={pwMsg.text} isError={pwMsg.error} />}
-          <button
-            onClick={handlePasswordUpdate}
-            disabled={isPending || !newPw || !confirmPw}
-            className="w-full py-2.5 bg-slate-800 text-white rounded-xl text-sm font-medium hover:bg-slate-700 transition-colors disabled:opacity-50"
-          >
+          <button onClick={handlePasswordUpdate} disabled={isPending || !newPw || !confirmPw}
+            className="w-full py-2.5 bg-slate-800 text-white rounded-xl text-sm font-medium hover:bg-slate-700 transition-colors disabled:opacity-50">
             {isPending ? "更新中..." : "パスワードを変更する"}
           </button>
         </div>

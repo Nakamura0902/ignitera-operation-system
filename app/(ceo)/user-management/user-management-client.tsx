@@ -3,23 +3,21 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Users, Search } from "lucide-react";
-import { updateUserRole, updateUserDepartment, toggleUserActive } from "./actions";
+import { updateUserRole, toggleUserActive } from "./actions";
 import { formatJstDate } from "@/lib/format-date";
-import type { UserRow, RoleOption, DeptOption } from "./page";
+import type { UserRow, RoleOption } from "./page";
 
 const ROLE_FILTER_OPTIONS = [
   { value: "all", label: "全員" },
   { value: "ceo", label: "CEO" },
-  { value: "admin", label: "管理者" },
+  { value: "admin", label: "マネージャー" },
   { value: "employee", label: "社員" },
-  { value: "viewer", label: "閲覧者" },
 ];
 
 const ROLE_BADGE_STYLES: Record<string, string> = {
   ceo: "bg-amber-100 text-amber-700 border border-amber-200",
-  admin: "bg-blue-100 text-blue-700 border border-blue-200",
+  admin: "bg-teal-100 text-teal-700 border border-teal-200",
   employee: "bg-emerald-100 text-emerald-700 border border-emerald-200",
-  viewer: "bg-slate-100 text-slate-600 border border-slate-200",
 };
 
 function RoleBadge({ roleName, displayName }: { roleName: string; displayName: string }) {
@@ -56,11 +54,10 @@ function UserAvatar({ name }: { name: string }) {
 interface UserRowProps {
   user: UserRow;
   roles: RoleOption[];
-  departments: DeptOption[];
   onMessage: (msg: string) => void;
 }
 
-function UserTableRow({ user, roles, departments, onMessage }: UserRowProps) {
+function UserTableRow({ user, roles, onMessage }: UserRowProps) {
   const router = useRouter();
   const [loadingField, setLoadingField] = useState<string | null>(null);
 
@@ -72,18 +69,6 @@ function UserTableRow({ user, roles, departments, onMessage }: UserRowProps) {
       onMessage(`エラー: ${result.error}`);
     } else {
       onMessage("ロールを更新しました");
-      router.refresh();
-    }
-  }
-
-  async function handleDepartmentChange(departmentId: string) {
-    setLoadingField("dept");
-    const result = await updateUserDepartment(user.id, departmentId);
-    setLoadingField(null);
-    if (result.error) {
-      onMessage(`エラー: ${result.error}`);
-    } else {
-      onMessage("部門を更新しました");
       router.refresh();
     }
   }
@@ -116,20 +101,12 @@ function UserTableRow({ user, roles, departments, onMessage }: UserRowProps) {
       <td className="py-3 text-xs text-slate-500 font-mono">
         {user.employee_id ?? "—"}
       </td>
-      <td className="py-3">
-        <select
-          value={user.departments?.id ?? ""}
-          disabled={loadingField === "dept"}
-          onChange={(e) => handleDepartmentChange(e.target.value)}
-          className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 cursor-pointer"
-        >
-          <option value="">未設定</option>
-          {departments.map((dept) => (
-            <option key={dept.id} value={dept.id}>
-              {dept.display_name}
-            </option>
-          ))}
-        </select>
+      <td className="py-3 text-xs text-slate-600">
+        {user.specialty ? (
+          <span className="px-2 py-0.5 bg-teal-50 text-teal-700 rounded-full font-medium">{user.specialty}</span>
+        ) : (
+          <span className="text-slate-400">—</span>
+        )}
       </td>
       <td className="py-3">
         <div className="flex flex-col gap-1">
@@ -175,10 +152,9 @@ function UserTableRow({ user, roles, departments, onMessage }: UserRowProps) {
 interface Props {
   initialUsers: UserRow[];
   roles: RoleOption[];
-  departments: DeptOption[];
 }
 
-export default function UserManagementClient({ initialUsers, roles, departments }: Props) {
+export default function UserManagementClient({ initialUsers, roles }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [message, setMessage] = useState<string | null>(null);
@@ -215,7 +191,7 @@ export default function UserManagementClient({ initialUsers, roles, departments 
             <Users size={20} className="text-blue-600" />
             ユーザー管理
           </h1>
-          <p className="text-slate-500 text-sm mt-0.5">社員のロール・部門・ステータスを管理する</p>
+          <p className="text-slate-500 text-sm mt-0.5">社員のロール・専門・ステータスを管理する</p>
         </div>
         <span className="text-[11px] px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-full font-semibold">
           {initialUsers.length} 名
@@ -258,7 +234,7 @@ export default function UserManagementClient({ initialUsers, roles, departments 
             <tr className="text-xs text-slate-400 border-b border-slate-100 bg-slate-50">
               <th className="text-left py-3 pl-4 font-medium">ユーザー</th>
               <th className="text-left py-3 font-medium">社員ID</th>
-              <th className="text-left py-3 font-medium">部門</th>
+              <th className="text-left py-3 font-medium">専門</th>
               <th className="text-left py-3 font-medium">ロール</th>
               <th className="text-left py-3 font-medium">ステータス</th>
               <th className="text-left py-3 font-medium">登録日</th>
@@ -278,7 +254,6 @@ export default function UserManagementClient({ initialUsers, roles, departments 
                   key={user.id}
                   user={user}
                   roles={roles}
-                  departments={departments}
                   onMessage={handleMessage}
                 />
               ))

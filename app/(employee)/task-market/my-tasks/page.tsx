@@ -29,7 +29,6 @@ async function fetchMyMarketActivity(userId: string) {
         id, task_id,
         tasks (
           id, title, progress_rate, due_date, provisional_score, status,
-          departments ( display_name ),
           users!tasks_assigned_to_fkey ( full_name )
         )
       )

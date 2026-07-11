@@ -15,7 +15,6 @@ async function fetchListing(listingId: string | null): Promise<MarketTask | null
       id, handover_note, required_skills,
       tasks (
         id, title, priority, progress_rate, due_date, provisional_score,
-        departments ( display_name ),
         task_scores ( difficulty )
       ),
       users!task_market_listings_listed_by_fkey ( full_name )

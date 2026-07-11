@@ -17,21 +17,19 @@ const CEO_ROUTES = [
   "/ceo-settings",
 ];
 
-// Employee-only routes
-const EMPLOYEE_ROUTES = [
-  "/home",
-  "/tasks",
-  "/task-market",
-  "/payroll-estimate",
-  "/score-history",
-];
-
 function isCeoRoute(pathname: string) {
   return CEO_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/"));
 }
 
-function isEmployeeRoute(pathname: string) {
-  return EMPLOYEE_ROUTES.some((r) => pathname === r || pathname.startsWith(r + "/"));
+function isManagerRoute(pathname: string) {
+  return pathname === "/manager" || pathname.startsWith("/manager/");
+}
+
+// ロール別のホーム。内部ロール 'admin' = マネージャー。
+function homeForRole(role: string) {
+  if (role === "ceo") return "/dashboard";
+  if (role === "admin") return "/manager/inbox";
+  return "/home";
 }
 
 async function getUserRole(userId: string): Promise<string> {
@@ -89,8 +87,7 @@ export async function middleware(request: NextRequest) {
   // Authenticated → redirect away from auth pages to role home
   if (user && isPublicPath && !pathname.startsWith("/_next") && !pathname.startsWith("/images") && pathname !== "/favicon.ico") {
     const role = await getUserRole(user.id);
-    const home = role === "ceo" || role === "admin" ? "/dashboard" : "/home";
-    return NextResponse.redirect(new URL(home, request.url));
+    return NextResponse.redirect(new URL(homeForRole(role), request.url));
   }
 
   // Authenticated → RBAC enforcement
@@ -98,20 +95,24 @@ export async function middleware(request: NextRequest) {
     // Root redirect
     if (pathname === "/") {
       const role = await getUserRole(user.id);
-      const home = role === "ceo" || role === "admin" ? "/dashboard" : "/home";
-      return NextResponse.redirect(new URL(home, request.url));
+      return NextResponse.redirect(new URL(homeForRole(role), request.url));
     }
 
-    // Protect CEO routes from non-CEO
+    // Protect CEO routes: 社長のみ
     if (isCeoRoute(pathname)) {
       const role = await getUserRole(user.id);
-      if (role !== "ceo" && role !== "admin") {
-        return NextResponse.redirect(new URL("/home", request.url));
+      if (role !== "ceo") {
+        return NextResponse.redirect(new URL(homeForRole(role), request.url));
       }
     }
 
-    // Protect employee routes from CEO (optional: CEO can view employee pages)
-    // Currently no restriction — CEO can browse employee pages for monitoring
+    // Protect manager routes: マネージャー(内部ロール'admin')のみ
+    if (isManagerRoute(pathname)) {
+      const role = await getUserRole(user.id);
+      if (role !== "admin") {
+        return NextResponse.redirect(new URL(homeForRole(role), request.url));
+      }
+    }
   }
 
   return supabaseResponse;

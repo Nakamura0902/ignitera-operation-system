@@ -36,8 +36,7 @@ async function fetchTaskScores(): Promise<TaskScoreRow[]> {
       approved_by,
       tasks (
         title,
-        users!tasks_assigned_to_fkey (full_name),
-        departments (display_name)
+        users!tasks_assigned_to_fkey (full_name)
       )
     `)
     .order("created_at", { ascending: false });
@@ -54,7 +53,7 @@ async function fetchTaskScores(): Promise<TaskScoreRow[]> {
       taskId: row.task_id,
       title: task?.title ?? "タスク名不明",
       assigneeName: task?.users?.full_name ?? "未設定",
-      departmentName: task?.departments?.display_name ?? "部門不明",
+      departmentName: "—",
       difficulty: row.difficulty,
       effort: row.effort,
       contribution: row.contribution,

@@ -15,8 +15,7 @@ export async function GET(req: NextRequest) {
   const { data, error } = await adminSupabase
     .from("tasks")
     .select(`
-      id, title, status, priority, progress_rate,
-      departments ( display_name )
+      id, title, status, priority, progress_rate
     `)
     .eq("assigned_to", user.id)
     .ilike("title", `%${q}%`)
@@ -34,7 +33,7 @@ export async function GET(req: NextRequest) {
     status: row.status,
     priority: row.priority,
     progress_rate: row.progress_rate,
-    department_name: (row.departments as { display_name?: string } | null)?.display_name ?? "未分類",
+    department_name: "—",
   }));
 
   return NextResponse.json({ results });

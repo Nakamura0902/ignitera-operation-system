@@ -34,14 +34,6 @@ export async function loginWithEmployeeId(employeeId: string, password: string) 
   return { success: true };
 }
 
-export async function getDepartments() {
-  const { data } = await adminSupabase
-    .from("departments")
-    .select("id, name")
-    .order("name");
-  return data ?? [];
-}
-
 export async function setupEmployee(
   email: string,
   password: string,
@@ -99,7 +91,6 @@ export async function setupEmployee(
     full_name: fullName.trim() || "未設定",
     role_id: roleData?.id ?? null,
     employee_id: employeeId,
-    department_id: null,
   });
 
   if (insertError) {

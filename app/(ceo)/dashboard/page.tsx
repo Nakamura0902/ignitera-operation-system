@@ -107,22 +107,27 @@ async function fetchApprovalItems() {
   });
 }
 
-async function fetchDeptTaskCounts() {
-  const { data: departments } = await adminSupabase
-    .from("departments")
-    .select("id, name, display_name");
+// マネージャー別の進行中タスク数（マネージャーが作成したタスク）
+async function fetchManagerTaskCounts() {
+  const { data: managers } = await adminSupabase
+    .from("users")
+    .select("id, full_name, specialty, roles!inner(name)")
+    .eq("is_active", true)
+    .eq("roles.name", "admin");
 
-  if (!departments) return [];
+  if (!managers) return [];
 
   const results = await Promise.all(
-    departments.map(async (dept) => {
+    managers.map(async (m) => {
       const { count } = await adminSupabase
         .from("tasks")
         .select("*", { count: "exact", head: true })
-        .eq("department_id", dept.id)
+        .eq("created_by", m.id)
         .neq("status", "completed");
 
-      return { dept: dept.display_name, tasks: count ?? 0 };
+      const name = (m as { full_name?: string }).full_name ?? "マネージャー";
+      const specialty = (m as { specialty?: string | null }).specialty;
+      return { dept: specialty ? `${name}（${specialty}）` : name, tasks: count ?? 0 };
     })
   );
 
@@ -159,19 +164,11 @@ const flowSteps = [
   { label: "社員", sub: "実行・報告", color: "#059669", icon: "👥" },
 ];
 
-const deptColors: Record<string, string> = {
-  "開発": "#2563eb",
-  "営業": "#059669",
-  "案件管理": "#f59e0b",
-  "経理・請求": "#ef4444",
-  "事務・オペレーション": "#7c3aed",
-};
-
 export default async function CeoDashboardPage() {
   const [ceoKpi, approvalItems, deptCounts] = await Promise.all([
     fetchCeoKpi(),
     fetchApprovalItems(),
-    fetchDeptTaskCounts(),
+    fetchManagerTaskCounts(),
   ]);
 
   return (
@@ -229,8 +226,8 @@ export default async function CeoDashboardPage() {
       <div className="grid grid-cols-5 gap-4">
         <StatCard label="本日の重要事項" value={`${ceoKpi.todayImportant}件`} sub="今日対応が必要" color="#2563eb" icon={<Zap size={16} />} href="/approval-center" />
         <StatCard label="確認待ち" value={`${ceoKpi.pendingApproval}件`} sub="承認待ちタスク" color="#f59e0b" icon={<Clock size={16} />} href="/approval-center" />
-        <StatCard label="今週の案件" value={`${ceoKpi.weeklyProjects}件`} sub="進行中案件" color="#059669" icon={<CheckCircle2 size={16} />} href="/departments/projects" />
-        <StatCard label="請求予定" value={`¥${(ceoKpi.billingScheduled / 10000).toFixed(0)}万`} sub="今月合計" color="#7c3aed" icon={<Receipt size={16} />} href="/departments/accounting" />
+        <StatCard label="今週の案件" value={`${ceoKpi.weeklyProjects}件`} sub="進行中案件" color="#059669" icon={<CheckCircle2 size={16} />} href="/reports" />
+        <StatCard label="請求予定" value={`¥${(ceoKpi.billingScheduled / 10000).toFixed(0)}万`} sub="今月合計" color="#7c3aed" icon={<Receipt size={16} />} href="/reports" />
         <StatCard label="AIからの提案" value={`${ceoKpi.aiProposals}件`} sub="確認が必要" color="#ef4444" icon={<Bot size={16} />} href="/ai-secretary" />
       </div>
 
@@ -297,7 +294,7 @@ export default async function CeoDashboardPage() {
                 { text: "タスク点数を承認する", href: "/task-scores", urgent: ceoKpi.pendingApproval > 0 },
                 { text: "タスクマーケットの出品申請を確認する", href: "/task-market-monitor", urgent: false },
                 { text: "今月の給与見込みレポートを確認する", href: "/payroll-report", urgent: false },
-                { text: "案件の進捗・納期を確認する", href: "/departments/projects", urgent: false },
+                { text: "レポートで全社状況を確認する", href: "/reports", urgent: false },
               ].map((a, i) => (
                 <Link key={i} href={a.href}
                   className={`flex items-center gap-3 p-3 rounded-xl border transition-all hover:shadow-sm ${
@@ -318,14 +315,15 @@ export default async function CeoDashboardPage() {
         <div className="space-y-5">
           {/* 部門ステータス */}
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-            <h2 className="text-sm font-bold text-slate-700 mb-4">部門ステータス（進行中タスク数）</h2>
-            {deptCounts.map(({ dept, tasks }) => {
-              const color = deptColors[dept] ?? "#94a3b8";
-              const status = tasks >= 15 ? "warning" : tasks >= 25 ? "alert" : "active";
+            <h2 className="text-sm font-bold text-slate-700 mb-4">マネージャー別ステータス（進行中タスク数）</h2>
+            {deptCounts.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-2">マネージャーが登録されていません</p>
+            ) : deptCounts.map(({ dept, tasks }) => {
+              const status = tasks >= 25 ? "alert" : tasks >= 15 ? "warning" : "active";
               return (
                 <div key={dept} className="flex items-center gap-3 py-2.5 border-b border-slate-100 last:border-0">
-                  <div className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
-                  <span className="text-sm flex-1 text-slate-700">{dept}</span>
+                  <div className="w-2 h-2 rounded-full shrink-0 bg-teal-500" />
+                  <span className="text-sm flex-1 text-slate-700 truncate">{dept}</span>
                   <span className="text-xs text-slate-400">{tasks}件</span>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                     status === "alert" ? "bg-red-100 text-red-600" :
