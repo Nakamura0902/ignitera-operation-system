@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Lock, CheckCircle2, AlertCircle, Target, Bell } from "lucide-react";
+import { Pencil, Lock, CheckCircle2, AlertCircle, Target } from "lucide-react";
 import { updateDisplayName, updatePassword, updateSpecialty } from "./actions";
-import { isPushSupported, getPushSubscribed, enablePush, disablePush } from "@/lib/push-client";
+import NotificationSettings from "@/components/settings/notification-settings";
 import type { CurrentUser } from "@/lib/get-current-user";
 
 const SPECIALTY_PRESETS = ["営業", "開発", "案件管理", "経理・請求", "事務・オペレーション"];
@@ -20,69 +20,14 @@ function StatusMessage({ message, isError }: { message: string; isError: boolean
   );
 }
 
-function PushSection() {
-  const [supported, setSupported] = useState(true);
-  const [subscribed, setSubscribed] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState<{ text: string; error: boolean } | null>(null);
-
-  useEffect(() => {
-    setSupported(isPushSupported());
-    getPushSubscribed().then(setSubscribed).catch(() => {});
-  }, []);
-
-  async function toggle() {
-    setBusy(true);
-    setMsg(null);
-    try {
-      if (subscribed) {
-        await disablePush();
-        setSubscribed(false);
-        setMsg({ text: "この端末の通知をオフにしました", error: false });
-      } else {
-        const res = await enablePush();
-        if (res.ok) {
-          setSubscribed(true);
-          setMsg({ text: "この端末で通知を受け取ります", error: false });
-        } else {
-          setMsg({ text: res.error ?? "有効化に失敗しました", error: true });
-        }
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-      <div className="flex items-center gap-2 mb-1">
-        <Bell size={15} className="text-blue-600" />
-        <h2 className="text-sm font-bold text-slate-700">プッシュ通知</h2>
-      </div>
-      <p className="text-xs text-slate-400 mb-4">
-        タスクの割り当てや指示ブリーフの受信をこの端末に通知します。
-        {!supported && "（この端末／ブラウザは通知に対応していません。iPhoneはホーム画面に追加してからお試しください）"}
-      </p>
-      {msg && <div className="mb-3"><StatusMessage message={msg.text} isError={msg.error} /></div>}
-      <button
-        onClick={toggle}
-        disabled={!supported || busy}
-        className={`w-full py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 ${
-          subscribed ? "bg-slate-200 text-slate-700 hover:bg-slate-300" : "bg-blue-600 text-white hover:bg-blue-700"
-        }`}
-      >
-        {busy ? "処理中..." : subscribed ? "この端末の通知をオフにする" : "この端末で通知をオンにする"}
-      </button>
-    </div>
-  );
-}
-
 export default function SettingsClient({
   user,
   initialSpecialty,
+  initialMutedTypes,
 }: {
   user: CurrentUser;
   initialSpecialty: string | null;
+  initialMutedTypes: string[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -209,8 +154,8 @@ export default function SettingsClient({
         </div>
       )}
 
-      {/* プッシュ通知 */}
-      <PushSection />
+      {/* 通知設定（Push＋種類別） */}
+      <NotificationSettings userId={user.id} initialMuted={initialMutedTypes} />
 
       {/* 氏名変更 */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">

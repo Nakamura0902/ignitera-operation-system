@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, Lock, CheckCircle2, AlertCircle, Crown } from "lucide-react";
 import { updateDisplayName, updatePassword } from "@/app/(employee)/settings/actions";
+import NotificationSettings from "@/components/settings/notification-settings";
 import type { CurrentUser } from "@/lib/get-current-user";
 
 function StatusMessage({ message, isError }: { message: string; isError: boolean }) {
@@ -17,7 +18,13 @@ function StatusMessage({ message, isError }: { message: string; isError: boolean
   );
 }
 
-export default function CeoSettingsClient({ user }: { user: CurrentUser }) {
+export default function CeoSettingsClient({
+  user,
+  initialMutedTypes,
+}: {
+  user: CurrentUser;
+  initialMutedTypes: string[];
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -97,6 +104,9 @@ export default function CeoSettingsClient({ user }: { user: CurrentUser }) {
           ))}
         </div>
       </div>
+
+      {/* 通知設定（Push＋種類別） */}
+      <NotificationSettings userId={user.id} initialMuted={initialMutedTypes} />
 
       {/* 氏名変更 */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">

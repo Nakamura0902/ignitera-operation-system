@@ -35,6 +35,15 @@ export async function createNotification(params: {
   type: NotificationType;
   actionUrl?: string;
 }) {
+  // 種類別オン/オフ: 受信者がこのタイプをミュートしていれば何もしない
+  const { data: pref } = await adminSupabase
+    .from("users")
+    .select("muted_notification_types")
+    .eq("id", params.userId)
+    .maybeSingle();
+  const muted = (pref?.muted_notification_types as string[] | null) ?? [];
+  if (muted.includes(params.type)) return;
+
   const { error } = await adminSupabase.from("notifications").insert({
     user_id: params.userId,
     title: params.title,

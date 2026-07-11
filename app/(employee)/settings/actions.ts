@@ -60,6 +60,22 @@ export async function updateSpecialty(userId: string, specialty: string) {
   return { success: true };
 }
 
+// 通知の種類別オン/オフ。mutedTypes = 受け取らないタイプの配列。
+export async function updateNotificationPrefs(userId: string, mutedTypes: string[]) {
+  const authError = await verifyActor(userId);
+  if (authError) return { error: authError };
+
+  const { error } = await adminSupabase
+    .from("users")
+    .update({ muted_notification_types: mutedTypes })
+    .eq("id", userId);
+
+  if (error) return { error: "通知設定の更新に失敗しました" };
+
+  revalidatePath("/settings");
+  return { success: true };
+}
+
 export async function updatePassword(newPassword: string, confirmPassword: string) {
   if (newPassword.length < 8) return { error: "パスワードは8文字以上にしてください" };
   if (newPassword !== confirmPassword) return { error: "パスワードが一致しません" };

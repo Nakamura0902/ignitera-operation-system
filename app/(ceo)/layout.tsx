@@ -1,9 +1,11 @@
 import CeoSidebar from "@/components/ceo/sidebar";
 import { Bell, ShieldCheck } from "lucide-react";
 import { getCurrentUser } from "@/lib/get-current-user";
+import { getUnreadCount } from "@/lib/notifications";
 
 export default async function CeoLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
+  const unreadCount = await getUnreadCount(user.id);
 
   return (
     <div className="flex min-h-screen" style={{ background: "#f1f5f9" }}>
@@ -21,10 +23,14 @@ export default async function CeoLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="relative w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+            <a href="/notifications" className="relative w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
               <Bell size={16} className="text-slate-600" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] text-white flex items-center justify-center font-bold">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </a>
             <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white cursor-pointer"
               style={{ background: "linear-gradient(135deg, #f59e0b, #ef4444)" }}>
               {user.avatar}
