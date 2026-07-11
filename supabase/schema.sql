@@ -29,5 +29,10 @@ create table if not exists line_customers (
   status text default '未対応',
   assignee text,
   next_action text,
-  memo text
+  memo text,
+
+  -- LINE連携（008で追加）
+  line_user_id text,
+  line_display_name text,
+  line_picture_url text
 );

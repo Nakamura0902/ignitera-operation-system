@@ -10,8 +10,10 @@ import {
   SETPLAN_TIMING_OPTIONS, SETPLAN_BUDGET_OPTIONS,
 } from "@/lib/line-customer-utils";
 import { createLineCustomer } from "../actions";
+import { useLiffProfile } from "@/components/forms/use-liff-profile";
 
 export default function SetPlanForm() {
+  const liffProfile = useLiffProfile();
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [industry, setIndustry] = useState("");
@@ -43,6 +45,7 @@ export default function SetPlanForm() {
       name, company_name: company, industry, website_url: websiteUrl,
       current_tools: currentTools, issues, interested_services: services,
       desired_timing: timing, budget, message,
+      ...liffProfile,
     });
     setLoading(false);
     if (res.error) setError(res.error);

@@ -17,6 +17,9 @@ export interface FormSubmission {
   desired_timing?: string;
   budget?: string;
   message?: string;
+  line_user_id?: string;
+  line_display_name?: string;
+  line_picture_url?: string;
 }
 
 // 公開フォームの送信。未認証で呼ばれる。estimated_plan / temperature はサーバー側で判定する。
@@ -49,6 +52,9 @@ export async function createLineCustomer(input: FormSubmission) {
     message: input.message?.trim() || null,
     estimated_plan,
     temperature: judgeTemperature(input.desired_timing),
+    line_user_id: input.line_user_id || null,
+    line_display_name: input.line_display_name || null,
+    line_picture_url: input.line_picture_url || null,
   });
 
   if (error) {

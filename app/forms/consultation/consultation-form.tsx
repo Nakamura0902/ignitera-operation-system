@@ -10,8 +10,10 @@ import {
   CONSULTATION_BUDGET_OPTIONS, CONTACT_METHOD_OPTIONS,
 } from "@/lib/line-customer-utils";
 import { createLineCustomer } from "../actions";
+import { useLiffProfile } from "@/components/forms/use-liff-profile";
 
 export default function ConsultationForm() {
+  const liffProfile = useLiffProfile();
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [industry, setIndustry] = useState("");
@@ -41,6 +43,7 @@ export default function ConsultationForm() {
       form_type: "まずは相談",
       name, company_name: company, industry, website_url: websiteUrl,
       issues, message, desired_timing: timing, budget, contact_method: contactMethod,
+      ...liffProfile,
     });
     setLoading(false);
     if (res.error) setError(res.error);
