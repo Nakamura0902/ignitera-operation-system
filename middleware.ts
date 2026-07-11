@@ -69,6 +69,11 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const { pathname } = request.nextUrl;
 
+  // 公開フォーム（LINE流入）は認証不要・リダイレクトなしで誰でもアクセス可
+  if (pathname.startsWith("/forms")) {
+    return supabaseResponse;
+  }
+
   const isPublicPath =
     pathname.startsWith("/login") ||
     pathname.startsWith("/setup") ||
@@ -110,6 +115,14 @@ export async function middleware(request: NextRequest) {
     if (isManagerRoute(pathname)) {
       const role = await getUserRole(user.id);
       if (role !== "admin") {
+        return NextResponse.redirect(new URL(homeForRole(role), request.url));
+      }
+    }
+
+    // Protect CommandCenter: 社長・マネージャーのみ
+    if (pathname === "/command-center" || pathname.startsWith("/command-center/")) {
+      const role = await getUserRole(user.id);
+      if (role !== "ceo" && role !== "admin") {
         return NextResponse.redirect(new URL(homeForRole(role), request.url));
       }
     }
