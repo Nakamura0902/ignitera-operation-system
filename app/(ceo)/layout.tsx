@@ -8,10 +8,10 @@ export default async function CeoLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex min-h-screen" style={{ background: "#f1f5f9" }}>
       <CeoSidebar user={{ name: user.name, avatar: user.avatar }} />
-      <div className="flex-1 ml-56 flex flex-col min-h-screen">
+      <div className="flex-1 lg:ml-56 flex flex-col min-h-screen">
 
         {/* CEO専用トップバー */}
-        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between">
+        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 pl-16 pr-4 lg:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200">
               <ShieldCheck size={13} className="text-amber-600" />

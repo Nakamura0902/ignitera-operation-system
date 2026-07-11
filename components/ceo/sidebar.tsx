@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Bot, BarChart3, Star, ShoppingBag,
-  Wallet, ShieldCheck, Settings, Zap, LogOut, Users,
+  Wallet, ShieldCheck, Settings, Zap, LogOut, Users, Menu, X,
 } from "lucide-react";
 
 export interface CeoSidebarUser {
@@ -27,14 +28,25 @@ const managementItems = [
 ];
 
 export default function CeoSidebar({ user }: { user: CeoSidebarUser }) {
+  const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
   const isActive = (href: string) =>
     href === "/dashboard" ? pathname === href : pathname === href || pathname.startsWith(href + "/");
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-56 flex flex-col z-40"
+    <>
+      <button onClick={() => setOpen(true)}
+        className="lg:hidden fixed top-2.5 left-3 z-50 w-9 h-9 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-700">
+        <Menu size={18} />
+      </button>
+      {open && <div onClick={() => setOpen(false)} className="lg:hidden fixed inset-0 bg-slate-900/50 z-40" />}
+
+    <aside className={`fixed left-0 top-0 h-screen w-56 flex flex-col z-40 transition-transform duration-200 lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
       style={{ background: "linear-gradient(180deg, #0f172a 0%, #1a2744 100%)" }}>
+      <button onClick={() => setOpen(false)} className="lg:hidden absolute top-3 right-3 text-white/70 hover:text-white">
+        <X size={18} />
+      </button>
 
       {/* ロゴ */}
       <div className="p-4 border-b border-white/10">
@@ -54,7 +66,7 @@ export default function CeoSidebar({ user }: { user: CeoSidebarUser }) {
       <nav className="flex-1 py-3 px-2 overflow-y-auto space-y-0.5">
         <p className="text-slate-500 text-[10px] font-semibold uppercase tracking-wider px-2 mb-2">ダッシュボード</p>
         {navItems.map(({ href, icon: Icon, label, badge }) => (
-          <Link key={href} href={href}
+          <Link key={href} href={href} onClick={() => setOpen(false)}
             className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
               isActive(href)
                 ? "bg-blue-600 text-white font-medium shadow-lg shadow-blue-900/50"
@@ -71,7 +83,7 @@ export default function CeoSidebar({ user }: { user: CeoSidebarUser }) {
         <div className="my-3 border-t border-white/8" />
         <p className="text-slate-500 text-[10px] font-semibold uppercase tracking-wider px-2 mb-2">管理・承認</p>
         {managementItems.map(({ href, icon: Icon, label, badge }) => (
-          <Link key={href} href={href}
+          <Link key={href} href={href} onClick={() => setOpen(false)}
             className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
               isActive(href)
                 ? "bg-blue-600 text-white font-medium shadow-lg shadow-blue-900/50"
@@ -88,7 +100,7 @@ export default function CeoSidebar({ user }: { user: CeoSidebarUser }) {
         ))}
 
         <div className="my-3 border-t border-white/8" />
-        <Link href="/ceo-settings"
+        <Link href="/ceo-settings" onClick={() => setOpen(false)}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-white/8 hover:text-white transition-all">
           <Settings size={15} />
           <span>設定</span>
@@ -118,5 +130,6 @@ export default function CeoSidebar({ user }: { user: CeoSidebarUser }) {
         </form>
       </div>
     </aside>
+    </>
   );
 }

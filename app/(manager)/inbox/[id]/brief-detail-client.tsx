@@ -8,6 +8,7 @@ import {
   UserCheck, ChevronDown, ChevronUp, CheckCircle2, AlertCircle,
 } from "lucide-react";
 import { getPriorityColor, getPriorityLabel, getProgressColor } from "@/lib/status-utils";
+import { DesktopOnly } from "@/components/desktop-only";
 import { updateDirectiveStatus, createTaskFromDirective } from "./actions";
 import type { BriefTaskRow, EmployeeOption } from "./page";
 
@@ -190,6 +191,7 @@ export default function BriefDetailClient({
       </div>
 
       {/* ステータス操作 */}
+      <DesktopOnly label="ステータス変更はPCから">
       <div className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
         <span className="text-xs font-semibold text-slate-500">ステータス:</span>
         <button
@@ -205,6 +207,7 @@ export default function BriefDetailClient({
           完了にする
         </button>
       </div>
+      </DesktopOnly>
 
       {/* 作成済みタスク */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
@@ -235,6 +238,7 @@ export default function BriefDetailClient({
       </div>
 
       {/* タスク作成フォーム */}
+      <DesktopOnly label="タスク作成・社員への割り当てはPCから">
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
         <h2 className="text-sm font-bold text-slate-700 mb-4 flex items-center gap-2">
           <Plus size={15} className="text-teal-600" /> 新しいタスクを作成する
@@ -350,6 +354,7 @@ export default function BriefDetailClient({
           </div>
         </div>
       </div>
+      </DesktopOnly>
     </div>
   );
 }

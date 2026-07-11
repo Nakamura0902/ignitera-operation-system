@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Inbox, Bell, Settings, HelpCircle, Zap, LogOut } from "lucide-react";
+import { Inbox, Bell, Settings, HelpCircle, Zap, LogOut, Menu, X } from "lucide-react";
 
 export interface ManagerSidebarUser {
   name: string;
@@ -13,6 +14,7 @@ export interface ManagerSidebarUser {
 }
 
 export default function ManagerSidebar({ user }: { user: ManagerSidebarUser }) {
+  const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
 
@@ -26,8 +28,18 @@ export default function ManagerSidebar({ user }: { user: ManagerSidebarUser }) {
   ];
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-56 flex flex-col z-40"
+    <>
+      <button onClick={() => setOpen(true)}
+        className="lg:hidden fixed top-2.5 left-3 z-50 w-9 h-9 rounded-lg bg-white border border-slate-200 shadow-sm flex items-center justify-center text-slate-700">
+        <Menu size={18} />
+      </button>
+      {open && <div onClick={() => setOpen(false)} className="lg:hidden fixed inset-0 bg-slate-900/50 z-40" />}
+
+    <aside className={`fixed left-0 top-0 h-screen w-56 flex flex-col z-40 transition-transform duration-200 lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}
       style={{ background: "linear-gradient(180deg, #0f172a 0%, #14322c 100%)" }}>
+      <button onClick={() => setOpen(false)} className="lg:hidden absolute top-3 right-3 text-white/70 hover:text-white">
+        <X size={18} />
+      </button>
 
       {/* ロゴ */}
       <div className="p-4 border-b border-white/10">
@@ -49,7 +61,7 @@ export default function ManagerSidebar({ user }: { user: ManagerSidebarUser }) {
         <ul className="space-y-0.5">
           {navItems.map(({ href, icon: Icon, label, badge }) => (
             <li key={href}>
-              <Link href={href}
+              <Link href={href} onClick={() => setOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
                   isActive(href)
                     ? "bg-teal-600 text-white font-medium shadow-lg shadow-teal-900/50"
@@ -72,7 +84,7 @@ export default function ManagerSidebar({ user }: { user: ManagerSidebarUser }) {
         <ul className="space-y-0.5">
           {bottomItems.map(({ href, icon: Icon, label, badge }) => (
             <li key={href}>
-              <Link href={href}
+              <Link href={href} onClick={() => setOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all ${
                   isActive(href)
                     ? "bg-teal-600 text-white font-medium"
@@ -114,5 +126,6 @@ export default function ManagerSidebar({ user }: { user: ManagerSidebarUser }) {
         </form>
       </div>
     </aside>
+    </>
   );
 }

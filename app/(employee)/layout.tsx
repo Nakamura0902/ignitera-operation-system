@@ -12,9 +12,9 @@ export default async function EmployeeLayout({ children }: { children: React.Rea
     <div className="flex min-h-screen" style={{ background: "#f1f5f9" }}>
       <Sidebar user={{ ...user, unreadCount }} />
 
-      <div className="flex-1 ml-56 flex flex-col min-h-screen">
+      <div className="flex-1 lg:ml-56 flex flex-col min-h-screen">
         {/* トップバー */}
-        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between">
+        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 pl-16 pr-4 lg:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1 max-w-md">
             <HeaderSearch userId={user.id} />
           </div>

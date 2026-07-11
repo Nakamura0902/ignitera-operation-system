@@ -7,6 +7,7 @@ import { ArrowLeft, CheckCircle2, AlertCircle, Loader2, ExternalLink, Send, Mess
 import type { LineCustomer } from "@/types/line-customer";
 import { STATUS_OPTIONS, TEMPERATURE_OPTIONS, PLAN_OPTIONS } from "@/lib/line-customer-utils";
 import { formatJstDateTime } from "@/lib/format-date";
+import { DesktopOnly } from "@/components/desktop-only";
 import { updateLineCustomer, sendLineMessageToCustomer } from "./actions";
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -160,7 +161,8 @@ export default function CustomerDetailClient({ customer }: { customer: LineCusto
           </div>
         </div>
 
-        {/* 右：編集 */}
+        {/* 右：編集（実作業） */}
+        <DesktopOnly label="ステータス変更・メモ・LINE送信はPCから">
         <div className="space-y-5">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6 space-y-4">
             <h2 className="text-sm font-bold text-slate-700">管理情報</h2>
@@ -205,6 +207,7 @@ export default function CustomerDetailClient({ customer }: { customer: LineCusto
             <LineSendCard customerId={customer.id} displayName={customer.line_display_name} />
           )}
         </div>
+        </DesktopOnly>
       </div>
     </div>
   );

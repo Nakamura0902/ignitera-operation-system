@@ -9,6 +9,7 @@ import {
 import TaskAttachments from "@/components/employee/task-attachments";
 import { getProgressLabel, getProgressColor, getPriorityLabel, getPriorityColor } from "@/lib/status-utils";
 import { formatJstDateTime } from "@/lib/format-date";
+import { DesktopOnly } from "@/components/desktop-only";
 import { updateTaskProgress, addComment, toggleChecklistItem, submitTaskCompletion } from "./actions";
 
 export interface DbTaskDetail {
@@ -294,6 +295,7 @@ export default function TaskDetail({ task, userId }: { task: DbTaskDetail; userI
             {commentError && (
               <p className="text-xs text-red-600 mb-2">{commentError}</p>
             )}
+            <DesktopOnly label="コメント投稿はPCから">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -311,6 +313,7 @@ export default function TaskDetail({ task, userId }: { task: DbTaskDetail; userI
                 <Send size={13} /> 送信
               </button>
             </div>
+            </DesktopOnly>
           </div>
         </div>
 
@@ -343,7 +346,8 @@ export default function TaskDetail({ task, userId }: { task: DbTaskDetail; userI
             </p>
           </div>
 
-          {/* アクションボタン */}
+          {/* アクションボタン（実作業） */}
+          <DesktopOnly label="進捗更新・完了提出・出品はPCから">
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-3">
             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-4">アクション</h2>
             <button
@@ -372,6 +376,7 @@ export default function TaskDetail({ task, userId }: { task: DbTaskDetail; userI
               <p className="text-xs text-red-600 text-center">{completionError}</p>
             )}
           </div>
+          </DesktopOnly>
         </div>
       </div>
 

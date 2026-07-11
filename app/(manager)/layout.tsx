@@ -22,9 +22,9 @@ export default async function ManagerLayout({ children }: { children: React.Reac
     <div className="flex min-h-screen" style={{ background: "#f1f5f9" }}>
       <ManagerSidebar user={{ ...user, inboxCount: inboxCount ?? 0, unreadCount }} />
 
-      <div className="flex-1 ml-56 flex flex-col min-h-screen">
+      <div className="flex-1 lg:ml-56 flex flex-col min-h-screen">
         {/* トップバー */}
-        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between">
+        <header className="sticky top-0 z-30 bg-white border-b border-slate-200 pl-16 pr-4 lg:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <p className="text-sm font-bold text-slate-700">マネージャーコンソール</p>
           </div>

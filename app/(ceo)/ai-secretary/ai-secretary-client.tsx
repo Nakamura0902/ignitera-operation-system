@@ -5,6 +5,7 @@ import {
   Bot, Send, Mic, Zap, ChevronRight, Tag, UserCheck,
   AlertCircle, FileText, Loader2, CheckCheck,
 } from "lucide-react";
+import { DesktopOnly } from "@/components/desktop-only";
 
 const templates = [
   "今週の売上目標と未対応案件を整理して、優先度の高い商談から動けるようにしてほしい",
@@ -149,16 +150,17 @@ export default function AiSecretaryClient({
         <p className="text-slate-500 text-sm mt-0.5">指示を整理・要約し、担当マネージャーに振り分けて届けます</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 左: 入力エリア */}
-        <div className="col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-4">
 
           <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-xl w-fit">
             <AlertCircle size={14} className="text-amber-600" />
             <span className="text-xs font-bold text-amber-700">この画面は社長専用です — マネージャー・社員は閲覧・入力できません</span>
           </div>
 
-          {/* 指示入力 */}
+          {/* 指示入力（実作業） */}
+          <DesktopOnly label="AI秘書への指示入力はPCから">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
             <div className="flex items-center gap-2 mb-4">
               <Bot size={16} className="text-blue-600" />
@@ -202,6 +204,7 @@ export default function AiSecretaryClient({
               </button>
             </div>
           </div>
+          </DesktopOnly>
 
           {/* テンプレート */}
           <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
