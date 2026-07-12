@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, CheckSquare, ShoppingBag, PackagePlus, PackageCheck,
-  TrendingUp, Star, Bell, Settings, HelpCircle, Zap, LogOut, Menu, X,
+  TrendingUp, Star, Bell, Settings, HelpCircle, Zap, LogOut, Menu, X, Inbox,
 } from "lucide-react";
 
 export interface SidebarUser {
@@ -14,20 +14,26 @@ export interface SidebarUser {
   employeeId: string;
   avatar: string;
   unreadCount?: number;
+  role?: string;
+  inboxCount?: number;
 }
 
-const navItems = [
-  { href: "/home", icon: Home, label: "ホーム" },
-  { href: "/tasks", icon: CheckSquare, label: "自分のタスク" },
-  { href: "/task-market", icon: ShoppingBag, label: "タスクマーケット" },
-  { href: "/task-market/list", icon: PackagePlus, label: "出品中タスク" },
-  { href: "/task-market/my-tasks", icon: PackageCheck, label: "引き受けタスク" },
-  { href: "/payroll-estimate", icon: TrendingUp, label: "ポイント・給与" },
-  { href: "/score-history", icon: Star, label: "評価履歴" },
+const baseNavItems = [
+  { href: "/home", icon: Home, label: "ホーム", badge: 0 },
+  { href: "/tasks", icon: CheckSquare, label: "自分のタスク", badge: 0 },
+  { href: "/task-market", icon: ShoppingBag, label: "タスクマーケット", badge: 0 },
+  { href: "/task-market/list", icon: PackagePlus, label: "出品中タスク", badge: 0 },
+  { href: "/task-market/my-tasks", icon: PackageCheck, label: "引き受けタスク", badge: 0 },
+  { href: "/payroll-estimate", icon: TrendingUp, label: "ポイント・給与", badge: 0 },
+  { href: "/score-history", icon: Star, label: "評価履歴", badge: 0 },
 ];
 
 export default function Sidebar({ user }: { user: SidebarUser }) {
   const [open, setOpen] = useState(false);
+  // マネージャーは社員画面に加えて「受信箱」(CEOからの依頼→タスク化)を持つ
+  const navItems = user.role === "manager"
+    ? [{ href: "/manager/inbox", icon: Inbox, label: "受信箱", badge: user.inboxCount ?? 0 }, ...baseNavItems]
+    : baseNavItems;
   const bottomItems = [
     { href: "/notifications", icon: Bell, label: "お知らせ", badge: user.unreadCount ?? 0 },
     { href: "/settings", icon: Settings, label: "設定・プロフィール" },
@@ -73,7 +79,7 @@ export default function Sidebar({ user }: { user: SidebarUser }) {
       <nav className="flex-1 py-3 px-2 overflow-y-auto">
         <p className="text-slate-500 text-[10px] font-semibold uppercase tracking-wider px-2 mb-2">メニュー</p>
         <ul className="space-y-0.5">
-          {navItems.map(({ href, icon: Icon, label }) => (
+          {navItems.map(({ href, icon: Icon, label, badge }) => (
             <li key={href}>
               <Link
                 href={href}
@@ -85,7 +91,12 @@ export default function Sidebar({ user }: { user: SidebarUser }) {
                 }`}
               >
                 <Icon size={15} className="shrink-0" />
-                <span className="truncate">{label}</span>
+                <span className="flex-1 truncate">{label}</span>
+                {badge > 0 && (
+                  <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                    {badge}
+                  </span>
+                )}
               </Link>
             </li>
           ))}

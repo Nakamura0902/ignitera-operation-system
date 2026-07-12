@@ -26,9 +26,9 @@ function isManagerRoute(pathname: string) {
 }
 
 // ロール別のホーム。内部ロール 'admin' = マネージャー。
+// マネージャーは社員と同じ画面を使い、ホームも /home。受信箱は /manager/inbox。
 function homeForRole(role: string) {
   if (role === "ceo") return "/dashboard";
-  if (role === "admin") return "/manager/inbox";
   return "/home";
 }
 
