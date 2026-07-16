@@ -7,10 +7,10 @@ import { adminSupabase } from "@/lib/supabase/admin";
 // 通知は全ロール共通ページ。ロールに応じて正しいサイドバー(=元のビュー)を出す。
 export default async function NotificationsLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
-  const unreadCount = await getUnreadCount(user.id);
 
   // CEO
   if (user.role === "ceo") {
+    const unreadCount = await getUnreadCount(user.id);
     return (
       <div className="flex min-h-screen" style={{ background: "#f1f5f9" }}>
         <CeoSidebar user={{ name: user.name, avatar: user.avatar }} />
@@ -29,13 +29,14 @@ export default async function NotificationsLayout({ children }: { children: Reac
 
   // マネージャー / 社員（社員サイドバーを共用）
   const isManager = user.role === "manager";
-  const inboxCount = isManager
-    ? (await adminSupabase
-        .from("directives")
-        .select("id", { count: "exact", head: true })
-        .eq("target_manager_id", user.id)
-        .eq("status", "sent")).count ?? 0
-    : 0;
+  const [unreadCount, inboxRes] = await Promise.all([
+    getUnreadCount(user.id),
+    isManager
+      ? adminSupabase.from("directives").select("id", { count: "exact", head: true })
+          .eq("target_manager_id", user.id).eq("status", "sent")
+      : Promise.resolve({ count: 0 }),
+  ]);
+  const inboxCount = inboxRes.count ?? 0;
 
   return (
     <div className="flex min-h-screen" style={{ background: "#f1f5f9" }}>

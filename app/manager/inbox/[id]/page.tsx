@@ -48,7 +48,7 @@ export default async function BriefDetailPage({
       .from("users")
       .select("id, full_name, specialty, roles!inner ( name )")
       .eq("is_active", true)
-      .eq("roles.name", "employee"),
+      .in("roles.name", ["employee", "admin"]),
   ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

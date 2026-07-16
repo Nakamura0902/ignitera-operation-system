@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { adminSupabase } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
@@ -22,7 +23,8 @@ function toUiRole(name: string | undefined): UiRole {
   return "employee";
 }
 
-export async function getCurrentUser(): Promise<CurrentUser> {
+// React cache: 同一リクエスト内(レイアウト+ページ)で1回だけ実行し重複往復を無くす
+export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
   // Verify session with the user's own cookie
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -54,4 +56,4 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     employeeId,
     avatar: fullName.charAt(0),
   };
-}
+});

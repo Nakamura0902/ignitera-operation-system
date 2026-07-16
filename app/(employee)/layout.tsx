@@ -7,17 +7,17 @@ import { adminSupabase } from "@/lib/supabase/admin";
 
 export default async function EmployeeLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
-  const unreadCount = await getUnreadCount(user.id);
-
-  // マネージャーは受信箱(未着手ブリーフ)の件数をサイドバーに出す
   const isManager = user.role === "manager";
-  const inboxCount = isManager
-    ? (await adminSupabase
-        .from("directives")
-        .select("id", { count: "exact", head: true })
-        .eq("target_manager_id", user.id)
-        .eq("status", "sent")).count ?? 0
-    : 0;
+
+  // 未読数と受信箱件数は並列で取得（直列往復を避ける）
+  const [unreadCount, inboxRes] = await Promise.all([
+    getUnreadCount(user.id),
+    isManager
+      ? adminSupabase.from("directives").select("id", { count: "exact", head: true })
+          .eq("target_manager_id", user.id).eq("status", "sent")
+      : Promise.resolve({ count: 0 }),
+  ]);
+  const inboxCount = inboxRes.count ?? 0;
 
   return (
     <div className="flex min-h-screen" style={{ background: "#f1f5f9" }}>
