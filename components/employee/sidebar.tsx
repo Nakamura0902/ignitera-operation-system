@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, CheckSquare, ShoppingBag, PackagePlus, PackageCheck,
-  TrendingUp, Star, Bell, Settings, HelpCircle, Zap, LogOut, Menu, X, Inbox,
+  TrendingUp, Star, Bell, Settings, HelpCircle, Zap, LogOut, Menu, X, Inbox, LayoutGrid,
 } from "lucide-react";
 
 export interface SidebarUser {
@@ -20,6 +20,7 @@ export interface SidebarUser {
 
 const baseNavItems = [
   { href: "/home", icon: Home, label: "ホーム", badge: 0 },
+  { href: "/task-board", icon: LayoutGrid, label: "タスクボード", badge: 0 },
   { href: "/tasks", icon: CheckSquare, label: "自分のタスク", badge: 0 },
   { href: "/task-market", icon: ShoppingBag, label: "タスクマーケット", badge: 0 },
   { href: "/task-market/list", icon: PackagePlus, label: "出品中タスク", badge: 0 },
