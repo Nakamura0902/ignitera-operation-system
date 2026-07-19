@@ -64,7 +64,9 @@ export default function BriefDetailClient({
   const [revenue, setRevenue] = useState("");
   const [revenueType, setRevenueType] = useState<"none" | "one_time" | "monthly">("one_time");
   const [scope, setScope] = useState<"managed" | "all">(managerSpecialty ? "managed" : "all");
-  const [assignedTo, setAssignedTo] = useState("");
+  const [assignedTo, setAssignedTo] = useState<string[]>([]);
+  const toggleAssignee = (id: string) =>
+    setAssignedTo((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const [checklist, setChecklist] = useState<{ title: string; weight: number }[]>([]);
 
   const managed = employees.filter((e) => managerSpecialty && e.specialty === managerSpecialty);
@@ -86,7 +88,7 @@ export default function BriefDetailClient({
   function submitTask() {
     setMsg(null);
     if (!title.trim()) return setMsg({ text: "タスク名を入力してください", error: true });
-    if (!assignedTo) return setMsg({ text: "担当社員を指名してください", error: true });
+    if (assignedTo.length === 0) return setMsg({ text: "担当社員を指名してください", error: true });
 
     startTransition(async () => {
       const res = await createTaskFromDirective(
@@ -106,15 +108,16 @@ export default function BriefDetailClient({
       if (res.error) {
         setMsg({ text: res.error, error: true });
       } else {
-        const name = employees.find((e) => e.id === assignedTo)?.name ?? "担当者";
-        setMsg({ text: `タスクを作成し、${name}さんに割り当てました`, error: false });
+        const names = assignedTo.map((id) => employees.find((e) => e.id === id)?.name ?? "担当者");
+        const label = names.length === 1 ? `${names[0]}さん` : `${names.length}名（${names.join("・")}）`;
+        setMsg({ text: `タスクを作成し、${label}に割り当てました`, error: false });
         setTitle("");
         setDescription("");
         setPriority("medium");
         setDueDate("");
         setRevenue("");
         setRevenueType("one_time");
-        setAssignedTo("");
+        setAssignedTo([]);
         setChecklist([]);
         if (status === "sent") setStatus("in_progress");
         router.refresh();
@@ -322,13 +325,14 @@ export default function BriefDetailClient({
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-slate-500 flex items-center gap-1">
                 <UserCheck size={12} className="text-teal-600" /> 担当社員を指名 *
+                {assignedTo.length > 0 && <span className="text-teal-600">（{assignedTo.length}名選択中）</span>}
               </label>
               <div className="flex gap-1 text-[10px]">
-                <button onClick={() => { setScope("managed"); setAssignedTo(""); }}
+                <button onClick={() => { setScope("managed"); setAssignedTo([]); }}
                   className={`px-2 py-0.5 rounded-full border ${scope === "managed" ? "bg-teal-50 text-teal-700 border-teal-200" : "text-slate-400 border-slate-200"}`}>
                   自分の管轄のみ
                 </button>
-                <button onClick={() => { setScope("all"); setAssignedTo(""); }}
+                <button onClick={() => { setScope("all"); setAssignedTo([]); }}
                   className={`px-2 py-0.5 rounded-full border ${scope === "all" ? "bg-teal-50 text-teal-700 border-teal-200" : "text-slate-400 border-slate-200"}`}>
                   全社員から選ぶ
                 </button>
@@ -339,15 +343,27 @@ export default function BriefDetailClient({
                 管轄内に社員がいません。「全社員から選ぶ」に切り替えてください
               </p>
             ) : (
-              <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)}
-                className="w-full mt-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400">
-                <option value="">選択してください</option>
-                {options.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {e.name}{e.specialty ? `（${e.specialty}）` : ""}
-                  </option>
-                ))}
-              </select>
+              <>
+                <div className="mt-1 max-h-44 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100">
+                  {options.map((e) => {
+                    const checked = assignedTo.includes(e.id);
+                    return (
+                      <label key={e.id}
+                        className={`flex items-center gap-2 px-3 py-2 text-sm cursor-pointer ${checked ? "bg-teal-50" : "hover:bg-slate-50"}`}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleAssignee(e.id)}
+                          className="w-4 h-4 accent-teal-600" />
+                        <span className="text-slate-700">{e.name}</span>
+                        {e.specialty && <span className="text-[11px] text-slate-400">（{e.specialty}）</span>}
+                      </label>
+                    );
+                  })}
+                </div>
+                {assignedTo.length > 1 && (
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    選択した人数分、同じ内容のタスクを個別に作成します（売上は重複を避けるため先頭の1件のみに計上）
+                  </p>
+                )}
+              </>
             )}
           </div>
 

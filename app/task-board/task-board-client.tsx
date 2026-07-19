@@ -522,7 +522,9 @@ function AddTaskModal({ members, onClose, startTransition }: { members: Member[]
   const [revenue, setRevenue] = useState("");
   const [rank, setRank] = useState("");
   const [deadline, setDeadline] = useState("");
-  const [assignee, setAssignee] = useState("");
+  const [assignees, setAssignees] = useState<string[]>([]);
+  const toggleAssignee = (id: string) =>
+    setAssignees((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   function go() {
@@ -536,7 +538,7 @@ function AddTaskModal({ members, onClose, startTransition }: { members: Member[]
         revenueAmount: revenueType === "none" ? 0 : Number(revenue.replace(/[,\s]/g, "")) || 0,
         priorityRank: rank ? Number(rank) : null,
         deadline: deadline || undefined,
-        assigneeMemberId: assignee || null,
+        assigneeMemberIds: assignees,
       });
       if (res?.error) { setErr(res.error); setBusy(false); } else onClose();
     });
@@ -592,11 +594,26 @@ function AddTaskModal({ members, onClose, startTransition }: { members: Member[]
           </div>
         </div>
         <div>
-          <label className="text-[11px] text-slate-500">担当者（任意・未指定なら未アサイン）</label>
-          <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className="w-full mt-1 px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl">
-            <option value="">未アサイン</option>
-            {members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-          </select>
+          <label className="text-[11px] text-slate-500">
+            担当者（複数選択可・未選択なら未アサイン）
+            {assignees.length > 0 && <span className="text-blue-600"> — {assignees.length}名選択中</span>}
+          </label>
+          <div className="mt-1 max-h-40 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100">
+            {members.map((m) => {
+              const checked = assignees.includes(m.id);
+              return (
+                <label key={m.id}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm cursor-pointer ${checked ? "bg-blue-50" : "hover:bg-slate-50"}`}>
+                  <input type="checkbox" checked={checked} onChange={() => toggleAssignee(m.id)} className="w-4 h-4 accent-blue-600" />
+                  <span className="text-slate-700">{m.name}</span>
+                  <span className="text-[11px] text-slate-400">{m.role === "MANAGER" ? "マネージャー" : m.role === "CEO" ? "CEO" : "社員"}</span>
+                </label>
+              );
+            })}
+          </div>
+          {assignees.length > 1 && (
+            <p className="text-[10px] text-slate-400 mt-1">選択人数分、同じタスクを個別に作成します（売上は先頭の1件のみに計上）</p>
+          )}
         </div>
         {err && <p className="text-xs text-rose-600">{err}</p>}
         <div className="flex justify-end gap-2 pt-1">

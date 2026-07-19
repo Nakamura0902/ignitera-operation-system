@@ -40,7 +40,8 @@ export interface CreateBoardTaskInput {
   rewardPoints?: number;
   deadline?: string;
   projectId?: string;
-  assigneeMemberId?: string | null; // CEO/mgrは直接割当可
+  assigneeMemberId?: string | null; // CEO/mgrは直接割当可（後方互換）
+  assigneeMemberIds?: string[]; // 複数割当可（1人ごとにタスクを複製）
   revenueAmount?: number;
   revenueType?: "none" | "one_time" | "monthly";
 }
@@ -54,63 +55,86 @@ export async function createBoardTask(input: CreateBoardTaskInput) {
   const difficulty = Math.min(5, Math.max(1, Math.round(input.difficulty) || 3));
   const revenueType = input.revenueType ?? "one_time";
   const revenueAmount = revenueType === "none" ? 0 : (input.revenueAmount && input.revenueAmount > 0 ? input.revenueAmount : 0);
+  const rewardPoints = input.rewardPoints && input.rewardPoints > 0 ? input.rewardPoints : 0;
 
   // 作成者情報
   const { data: creator } = await adminSupabase
     .from("users").select("full_name, roles(name)").eq("id", user.id).single();
   const creatorRole = (creator?.roles as { name?: string } | null)?.name === "ceo" ? "CEO" : "MANAGER";
 
-  // 優先順位: 未指定なら末尾、指定なら以下を繰り下げ
-  let rank = input.priorityRank ?? null;
-  if (rank != null) {
-    // 既存の未アサインで rank 以上を +1 繰り下げ
-    const { data: toShift } = await adminSupabase
-      .from("tasks").select("id, priority_rank")
-      .is("assigned_to", null).not("priority_rank", "is", null).gte("priority_rank", rank);
-    for (const t of toShift ?? []) {
-      await adminSupabase.from("tasks").update({ priority_rank: (t.priority_rank as number) + 1 }).eq("id", t.id);
-    }
-  } else {
-    const { data: maxRow } = await adminSupabase
-      .from("tasks").select("priority_rank").is("assigned_to", null)
-      .order("priority_rank", { ascending: false }).limit(1).maybeSingle();
-    rank = ((maxRow?.priority_rank as number | null) ?? 0) + 1;
-  }
+  const assignees = Array.from(new Set(
+    (input.assigneeMemberIds && input.assigneeMemberIds.length > 0
+      ? input.assigneeMemberIds
+      : (input.assigneeMemberId ? [input.assigneeMemberId] : [])
+    ).filter(Boolean)
+  ));
 
-  const { data: task, error } = await adminSupabase.from("tasks").insert({
+  const baseFields = {
     title: input.title.trim(),
     description: input.description?.trim() || null,
     priority: "medium",
     difficulty,
-    reward_points: input.rewardPoints && input.rewardPoints > 0 ? input.rewardPoints : 0,
-    revenue_amount: revenueAmount,
-    revenue_type: revenueType,
-    priority_rank: rank,
+    reward_points: rewardPoints,
     due_date: input.deadline || null,
     project_id: input.projectId || null,
-    assigned_to: input.assigneeMemberId || null,
     created_by: user.id,
     status: "pending",
     progress_rate: 0,
-  }).select("id").single();
+  };
 
-  if (error || !task) return { error: "タスクの作成に失敗しました" };
+  // 割当なし: 未アサインキューへ1件（優先順位を計算・繰り下げ）
+  if (assignees.length === 0) {
+    let rank = input.priorityRank ?? null;
+    if (rank != null) {
+      const { data: toShift } = await adminSupabase
+        .from("tasks").select("id, priority_rank")
+        .is("assigned_to", null).not("priority_rank", "is", null).gte("priority_rank", rank);
+      for (const t of toShift ?? []) {
+        await adminSupabase.from("tasks").update({ priority_rank: (t.priority_rank as number) + 1 }).eq("id", t.id);
+      }
+    } else {
+      const { data: maxRow } = await adminSupabase
+        .from("tasks").select("priority_rank").is("assigned_to", null)
+        .order("priority_rank", { ascending: false }).limit(1).maybeSingle();
+      rank = ((maxRow?.priority_rank as number | null) ?? 0) + 1;
+    }
 
-  await recordHistory({
-    taskId: task.id, action: "CREATED",
-    toMemberId: input.assigneeMemberId ?? null,
-    createdByMemberId: user.id, deadline: input.deadline ?? null,
-  });
-  // 直接割当した場合は通知
-  if (input.assigneeMemberId) {
+    const { data: task, error } = await adminSupabase.from("tasks").insert({
+      ...baseFields, revenue_amount: revenueAmount, revenue_type: revenueType,
+      priority_rank: rank, assigned_to: null,
+    }).select("id").single();
+    if (error || !task) return { error: "タスクの作成に失敗しました" };
+
+    await recordHistory({ taskId: task.id, action: "CREATED", toMemberId: null, createdByMemberId: user.id, deadline: input.deadline ?? null });
+    revalidatePath("/task-board");
+    return { success: true, taskIds: [task.id], count: 1, creatorRole };
+  }
+
+  // 割当あり: 1人ごとに複製。優先順位は付与しない（未アサインキュー専用）
+  // 売上は重複計上を避けるため先頭の1件のみに付与
+  const createdIds: string[] = [];
+  for (let i = 0; i < assignees.length; i++) {
+    const assignee = assignees[i];
+    const isFirst = i === 0;
+    const { data: task, error } = await adminSupabase.from("tasks").insert({
+      ...baseFields,
+      revenue_amount: isFirst ? revenueAmount : 0,
+      revenue_type: isFirst ? revenueType : "none",
+      priority_rank: null, assigned_to: assignee,
+    }).select("id").single();
+    if (error || !task) continue;
+    createdIds.push(task.id);
+
+    await recordHistory({ taskId: task.id, action: "CREATED", toMemberId: assignee, createdByMemberId: user.id, deadline: input.deadline ?? null });
     await createNotification({
-      userId: input.assigneeMemberId, title: "新しいタスクが割り当てられました",
+      userId: assignee, title: "新しいタスクが割り当てられました",
       message: input.title.trim(), type: "task_assigned", actionUrl: "/task-board",
     });
   }
 
+  if (createdIds.length === 0) return { error: "タスクの作成に失敗しました" };
   revalidatePath("/task-board");
-  return { success: true, taskId: task.id, creatorRole };
+  return { success: true, taskIds: createdIds, count: createdIds.length, creatorRole };
 }
 
 // ---- タスク取得（未アサイン → 本人 / CEO・mgrは他者へ割当可） ----
