@@ -137,6 +137,41 @@ export async function createBoardTask(input: CreateBoardTaskInput) {
   return { success: true, taskIds: createdIds, count: createdIds.length, creatorRole };
 }
 
+// ---- タスク削除（CEO / マネージャーのみ・ソフト削除 + 監査ログ） ----
+export async function deleteBoardTask(taskId: string) {
+  const user = await getApiUser();
+  if (!user) return { error: "認証が必要です" };
+  if (!isCeoOrAdmin(user)) return { error: "タスクの削除は社長・マネージャーのみ可能です" };
+
+  const { data: task } = await adminSupabase
+    .from("tasks").select("id, title, status, assigned_to, revenue_amount").eq("id", taskId).maybeSingle();
+  if (!task) return { error: "タスクが見つかりません" };
+  if (task.status === "cancelled") return { error: "このタスクは既に削除されています" };
+
+  // ソフト削除: cancelled にするとボード・各一覧から除外される（記録は残す）
+  const { error } = await adminSupabase.from("tasks").update({ status: "cancelled" }).eq("id", taskId);
+  if (error) return { error: "タスクの削除に失敗しました" };
+
+  await writeAuditLog({
+    userId: user.id,
+    action: "task.deleted",
+    targetType: "task",
+    targetId: taskId,
+    before: { title: task.title, status: task.status, assigned_to: task.assigned_to, revenue_amount: task.revenue_amount },
+  });
+
+  // 担当者がいた場合は通知
+  if (task.assigned_to) {
+    await createNotification({
+      userId: task.assigned_to, title: "タスクが削除されました",
+      message: `「${task.title}」が削除されました`, type: "system", actionUrl: "/task-board",
+    });
+  }
+
+  revalidatePath("/task-board");
+  return { success: true };
+}
+
 // ---- タスク取得（未アサイン → 本人 / CEO・mgrは他者へ割当可） ----
 export async function acquireTask(taskId: string, toMemberId: string) {
   const user = await getApiUser();

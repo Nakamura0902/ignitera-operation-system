@@ -5,12 +5,12 @@ import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDraggable, useDroppable,
   defaultDropAnimationSideEffects, type DragEndEvent, type DragStartEvent, type DropAnimation,
 } from "@dnd-kit/core";
-import { GripVertical, Lock, Search, CornerUpLeft, Plus, X } from "lucide-react";
+import { GripVertical, Lock, Search, CornerUpLeft, Plus, X, Trash2 } from "lucide-react";
 import type { BoardTask, Member, TransferRequest } from "@/types/task-board";
 import { STATUS_LABEL, STATUS_BADGE, rankAccent, formatRemaining } from "@/lib/task-board";
 import {
   createBoardTask, acquireTask, requestTransfer, respondTransfer, returnTask,
-  updateBoardStatus, setSchedule, reportBoardCompletion,
+  updateBoardStatus, setSchedule, reportBoardCompletion, deleteBoardTask,
 } from "./actions";
 
 type UiRole = "ceo" | "manager" | "employee";
@@ -176,7 +176,7 @@ export default function TaskBoardClient(props: Props) {
 
       {/* ドロワー・モーダル */}
       {drawerTask && (
-        <TaskDrawer task={drawerTask} members={members} currentMemberId={currentMemberId}
+        <TaskDrawer task={drawerTask} members={members} currentMemberId={currentMemberId} canManage={canCreate}
           onClose={() => setDrawerTask(null)}
           onReturn={() => { setReturnT(drawerTask); setDrawerTask(null); }}
           onTransfer={(to) => { setTransferT({ task: drawerTask, to }); setDrawerTask(null); }} />
@@ -626,14 +626,16 @@ function AddTaskModal({ members, onClose, startTransition }: { members: Member[]
 }
 
 // ---------- タスク詳細ドロワー ----------
-function TaskDrawer({ task, members, currentMemberId, onClose, onReturn, onTransfer }: {
-  task: BoardTask; members: Member[]; currentMemberId: string;
+function TaskDrawer({ task, members, currentMemberId, canManage, onClose, onReturn, onTransfer }: {
+  task: BoardTask; members: Member[]; currentMemberId: string; canManage: boolean;
   onClose: () => void; onReturn: () => void; onTransfer: (to: string) => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const isMine = task.assigneeMemberId === currentMemberId;
   const assignee = members.find((m) => m.id === task.assigneeMemberId);
   const [transferTo, setTransferTo] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [delErr, setDelErr] = useState<string | null>(null);
 
   function act(fn: () => Promise<{ error?: string } | void>) {
     startTransition(async () => { await fn(); onClose(); });
@@ -664,6 +666,36 @@ function TaskDrawer({ task, members, currentMemberId, onClose, onReturn, onTrans
             <div className="flex items-start gap-2 text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-3 py-2">
               <Lock size={13} className="mt-0.5 shrink-0" />
               納期まで48時間未満のため、返却・移管できません。現在の担当者が最終責任を持ちます。
+            </div>
+          )}
+
+          {/* 削除（CEO / マネージャーのみ・PCから） */}
+          {canManage && (
+            <div className="hidden lg:block pt-2 border-t border-slate-100">
+              {!confirmDelete ? (
+                <button onClick={() => { setConfirmDelete(true); setDelErr(null); }}
+                  className="flex items-center gap-1.5 text-xs text-rose-600 hover:text-rose-700">
+                  <Trash2 size={13} /> このタスクを削除
+                </button>
+              ) : (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3">
+                  <p className="text-xs text-rose-700 font-medium mb-1">本当に削除しますか？</p>
+                  <p className="text-[11px] text-slate-500 mb-2">ボード・各一覧から除外されます。この操作は監査ログに記録されます。</p>
+                  {delErr && <p className="text-[11px] text-rose-600 mb-2">{delErr}</p>}
+                  <div className="flex gap-2">
+                    <button onClick={() => setConfirmDelete(false)} disabled={isPending}
+                      className="px-3 py-1.5 text-xs rounded-lg border border-slate-200 text-slate-600">キャンセル</button>
+                    <button disabled={isPending}
+                      onClick={() => startTransition(async () => {
+                        const res = await deleteBoardTask(task.id);
+                        if (res?.error) setDelErr(res.error); else onClose();
+                      })}
+                      className="px-3 py-1.5 text-xs rounded-lg bg-rose-600 text-white font-medium disabled:opacity-60">
+                      {isPending ? "削除中..." : "削除する"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
