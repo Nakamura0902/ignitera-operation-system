@@ -57,6 +57,7 @@ export interface CreateTaskInput {
   dueDate?: string;
   assignedTo: string;
   revenueAmount?: number;
+  revenueType?: "none" | "one_time" | "monthly";
   checklist?: { title: string; weight: number }[];
 }
 
@@ -77,7 +78,10 @@ export async function createTaskFromDirective(input: CreateTaskInput, userId: st
       assigned_to: input.assignedTo,
       created_by: userId,
       directive_id: input.directiveId,
-      revenue_amount: input.revenueAmount && input.revenueAmount > 0 ? input.revenueAmount : 0,
+      revenue_type: input.revenueType ?? "one_time",
+      revenue_amount: (input.revenueType ?? "one_time") === "none"
+        ? 0
+        : (input.revenueAmount && input.revenueAmount > 0 ? input.revenueAmount : 0),
       status: "pending",
       progress_rate: 0,
     })

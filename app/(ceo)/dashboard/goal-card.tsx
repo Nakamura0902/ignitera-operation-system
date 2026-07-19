@@ -8,10 +8,14 @@ export default function GoalCard({
   month,
   target,
   achieved,
+  oneTime = 0,
+  monthly = 0,
 }: {
   month: number;
   target: number;
   achieved: number;
+  oneTime?: number;
+  monthly?: number;
 }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(String(target || ""));
@@ -76,8 +80,13 @@ export default function GoalCard({
       ) : (
         <div className="flex items-end justify-between mb-3">
           <div>
-            <p className="text-[11px] text-slate-400">達成売上（完了タスク）</p>
+            <p className="text-[11px] text-slate-400">達成売上（単発＋月額）</p>
             <p className="text-3xl font-bold text-slate-800">¥{achieved.toLocaleString()}</p>
+            {(oneTime > 0 || monthly > 0) && (
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                単発 ¥{oneTime.toLocaleString()} ・ 月額 ¥{monthly.toLocaleString()}
+              </p>
+            )}
           </div>
           <div className="text-right">
             <p className="text-[11px] text-slate-400">目標</p>

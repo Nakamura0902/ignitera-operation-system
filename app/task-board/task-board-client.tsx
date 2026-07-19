@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
-  DndContext, PointerSensor, useSensor, useSensors, useDraggable, useDroppable,
-  type DragEndEvent,
+  DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDraggable, useDroppable,
+  defaultDropAnimationSideEffects, type DragEndEvent, type DragStartEvent, type DropAnimation,
 } from "@dnd-kit/core";
 import { GripVertical, Lock, Search, CornerUpLeft, Plus, X } from "lucide-react";
 import type { BoardTask, Member, TransferRequest } from "@/types/task-board";
@@ -29,6 +29,11 @@ interface Props {
 const RETURN_REASONS = ["スキル不足", "工数見積もり誤り", "他タスクとの競合", "内容理解不足", "その他"];
 const TRANSFER_REASONS = ["スキル不足", "工数見積もり誤り", "期限内完了が困難", "他社員の方が適任", "他タスクとの競合", "その他"];
 
+// ドロップ時、元の位置へ戻るアニメーション（掴んだカードは半透明のまま残す）
+const DROP_ANIMATION: DropAnimation = {
+  sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: "0.4" } } }),
+};
+
 export default function TaskBoardClient(props: Props) {
   const { currentMemberId, role, members, unassigned, byMember, stats, requests } = props;
   const canCreate = role === "ceo" || role === "manager";
@@ -41,6 +46,7 @@ export default function TaskBoardClient(props: Props) {
   const [returnT, setReturnT] = useState<BoardTask | null>(null);
   const [transferT, setTransferT] = useState<{ task: BoardTask; to: string } | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [activeTask, setActiveTask] = useState<BoardTask | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -53,7 +59,12 @@ export default function TaskBoardClient(props: Props) {
 
   const overdueTotal = Object.values(stats).reduce((s, v) => s + v.overdue, 0);
 
+  function onDragStart(e: DragStartEvent) {
+    setActiveTask(findTask(String(e.active.id), unassigned, byMember));
+  }
+
   function onDragEnd(e: DragEndEvent) {
+    setActiveTask(null);
     const taskId = String(e.active.id);
     const to = e.over ? String(e.over.id).replace("col:", "") : null;
     if (!to) return;
@@ -129,7 +140,7 @@ export default function TaskBoardClient(props: Props) {
       )}
 
       {/* ボード本体: 未アサイン固定 + 社員横スクロール */}
-      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+      <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveTask(null)}>
         <div className="flex-1 min-h-0 grid" style={{ gridTemplateColumns: "320px minmax(0,1fr)" }}>
           <UnassignedColumn tasks={unassigned} onOpen={setDrawerTask} currentMemberId={currentMemberId} onAcquire={(t) => setAcquireT({ task: t, to: currentMemberId })} />
           <div ref={scrollRef} className="overflow-x-auto overflow-y-hidden">
@@ -142,6 +153,10 @@ export default function TaskBoardClient(props: Props) {
             </div>
           </div>
         </div>
+        {/* ドラッグ中にカーソルへ追従するカード */}
+        <DragOverlay dropAnimation={DROP_ANIMATION}>
+          {activeTask ? <DragCardOverlay task={activeTask} /> : null}
+        </DragOverlay>
       </DndContext>
 
       {/* ドロワー・モーダル */}
@@ -261,6 +276,34 @@ function TaskCard({ task, onOpen, footer }: { task: BoardTask; onOpen: (t: Board
           </div>
           {footer}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ---------- ドラッグ中にカーソルへ追従する浮遊カード ----------
+function DragCardOverlay({ task }: { task: BoardTask }) {
+  const accent = rankAccent(task.priorityRank);
+  return (
+    <div className={`w-[272px] bg-white rounded-xl border border-slate-200 ${accent.border} shadow-2xl ring-2 ring-blue-300 rotate-2 cursor-grabbing`}>
+      <div className="flex items-start gap-1.5 p-2.5">
+        <span className="mt-0.5 shrink-0 text-slate-400"><GripVertical size={14} /></span>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 mb-1">
+            {task.priorityRank != null && (
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${accent.badge}`}>#{task.priorityRank}</span>
+            )}
+            <span className="text-sm font-medium text-slate-800 truncate">{task.title}</span>
+          </div>
+          <div className="flex items-center gap-2 text-[10px] text-slate-500 flex-wrap">
+            <span>難易度 {task.difficulty}</span>
+            {task.rewardPoints > 0 && <span className="text-blue-600">{task.rewardPoints}pt</span>}
+            <span className={task.status === "OVERDUE" ? "text-rose-600 font-medium" : ""}>{formatRemaining(task.deadline)}</span>
+          </div>
+          <div className="mt-1.5">
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full border ${STATUS_BADGE[task.status]}`}>{STATUS_LABEL[task.status]}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -397,6 +440,8 @@ function AddTaskModal({ members, onClose, startTransition }: { members: Member[]
   const [description, setDescription] = useState("");
   const [difficulty, setDifficulty] = useState(3);
   const [reward, setReward] = useState("");
+  const [revenueType, setRevenueType] = useState<"none" | "one_time" | "monthly">("none");
+  const [revenue, setRevenue] = useState("");
   const [rank, setRank] = useState("");
   const [deadline, setDeadline] = useState("");
   const [assignee, setAssignee] = useState("");
@@ -409,6 +454,8 @@ function AddTaskModal({ members, onClose, startTransition }: { members: Member[]
       const res = await createBoardTask({
         title, description, difficulty,
         rewardPoints: Number(reward) || 0,
+        revenueType,
+        revenueAmount: revenueType === "none" ? 0 : Number(revenue.replace(/[,\s]/g, "")) || 0,
         priorityRank: rank ? Number(rank) : null,
         deadline: deadline || undefined,
         assigneeMemberId: assignee || null,
@@ -434,6 +481,27 @@ function AddTaskModal({ members, onClose, startTransition }: { members: Member[]
             <label className="text-[11px] text-slate-500">報酬pt</label>
             <input value={reward} onChange={(e) => setReward(e.target.value)} inputMode="numeric" placeholder="0" className="w-full mt-1 px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-xl" />
           </div>
+        </div>
+        <div>
+          <label className="text-[11px] text-slate-500">売上</label>
+          <div className="grid grid-cols-3 gap-1.5 mt-1">
+            {([
+              { v: "none", label: "売上なし" },
+              { v: "one_time", label: "単発" },
+              { v: "monthly", label: "月額" },
+            ] as const).map((o) => (
+              <button key={o.v} type="button" onClick={() => setRevenueType(o.v)}
+                className={`py-1.5 rounded-lg text-xs border ${revenueType === o.v ? "bg-blue-600 text-white border-blue-600" : "bg-white text-slate-600 border-slate-200"}`}>{o.label}</button>
+            ))}
+          </div>
+          {revenueType !== "none" && (
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-sm text-slate-500">¥</span>
+              <input value={revenue} onChange={(e) => setRevenue(e.target.value)} inputMode="numeric" placeholder="例: 300000"
+                className="flex-1 px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-xl" />
+              {revenueType === "monthly" && <span className="text-xs text-slate-400">/ 月</span>}
+            </div>
+          )}
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>

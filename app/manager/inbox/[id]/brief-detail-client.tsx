@@ -62,6 +62,7 @@ export default function BriefDetailClient({
   const [priority, setPriority] = useState<"low" | "medium" | "high" | "urgent">("medium");
   const [dueDate, setDueDate] = useState("");
   const [revenue, setRevenue] = useState("");
+  const [revenueType, setRevenueType] = useState<"none" | "one_time" | "monthly">("one_time");
   const [scope, setScope] = useState<"managed" | "all">(managerSpecialty ? "managed" : "all");
   const [assignedTo, setAssignedTo] = useState("");
   const [checklist, setChecklist] = useState<{ title: string; weight: number }[]>([]);
@@ -96,7 +97,8 @@ export default function BriefDetailClient({
           priority,
           dueDate: dueDate || undefined,
           assignedTo,
-          revenueAmount: Number(revenue.replace(/[,\s]/g, "")) || 0,
+          revenueType,
+          revenueAmount: revenueType === "none" ? 0 : Number(revenue.replace(/[,\s]/g, "")) || 0,
           checklist,
         },
         userId
@@ -111,6 +113,7 @@ export default function BriefDetailClient({
         setPriority("medium");
         setDueDate("");
         setRevenue("");
+        setRevenueType("one_time");
         setAssignedTo("");
         setChecklist([]);
         if (status === "sent") setStatus("in_progress");
@@ -283,16 +286,35 @@ export default function BriefDetailClient({
             </div>
           </div>
 
-          {/* 売上額 */}
+          {/* 売上タイプ・売上額 */}
           <div>
-            <label className="text-xs font-semibold text-slate-500">このタスクで発生する売上（任意）</label>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm text-slate-500">¥</span>
-              <input value={revenue} onChange={(e) => setRevenue(e.target.value)} inputMode="numeric"
-                placeholder="例: 300000"
-                className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400" />
+            <label className="text-xs font-semibold text-slate-500">このタスクで発生する売上</label>
+            <div className="grid grid-cols-3 gap-1.5 mt-1">
+              {([
+                { v: "none", label: "売上なし" },
+                { v: "one_time", label: "単発" },
+                { v: "monthly", label: "月額" },
+              ] as const).map((o) => (
+                <button key={o.v} type="button" onClick={() => setRevenueType(o.v)}
+                  className={`py-2 rounded-xl text-xs border transition-all ${
+                    revenueType === o.v ? "bg-teal-600 text-white border-teal-600" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                  }`}>{o.label}</button>
+              ))}
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">完了時に今月の売上目標の達成分として集計されます</p>
+            {revenueType !== "none" && (
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-sm text-slate-500">¥</span>
+                <input value={revenue} onChange={(e) => setRevenue(e.target.value)} inputMode="numeric"
+                  placeholder="例: 300000"
+                  className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-teal-400" />
+                {revenueType === "monthly" && <span className="text-xs text-slate-400 whitespace-nowrap">/ 月</span>}
+              </div>
+            )}
+            <p className="text-[10px] text-slate-400 mt-1">
+              {revenueType === "none" && "このタスクは売上目標に計上されません"}
+              {revenueType === "one_time" && "完了した月に、今月の売上目標の達成分として集計されます"}
+              {revenueType === "monthly" && "月額制。解約されるまで毎月の達成売上に計上されます"}
+            </p>
           </div>
 
           {/* 担当社員の指名 */}

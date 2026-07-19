@@ -12,16 +12,24 @@ async function fetchRevenueGoal() {
   const { year, month } = jstYearMonth();
   const { start, end } = jstMonthRange(year, month);
 
-  const [{ data: targetRow }, { data: completed }] = await Promise.all([
+  const [{ data: targetRow }, { data: oneTimeRows }, { data: monthlyRows }] = await Promise.all([
     adminSupabase.from("monthly_targets").select("target_revenue").eq("year", year).eq("month", month).maybeSingle(),
-    adminSupabase.from("tasks").select("revenue_amount").eq("status", "completed").gte("updated_at", start).lt("updated_at", end),
+    // 単発: 今月完了したタスクの売上
+    adminSupabase.from("tasks").select("revenue_amount")
+      .eq("status", "completed").eq("revenue_type", "one_time")
+      .gte("updated_at", start).lt("updated_at", end),
+    // 月額: 解約(cancelled)されていない月額タスクは毎月計上
+    adminSupabase.from("tasks").select("revenue_amount")
+      .eq("revenue_type", "monthly").neq("status", "cancelled"),
   ]);
 
+  const sum = (rows: unknown[] | null) =>
+    (rows ?? []).reduce((s: number, t) => s + Number((t as { revenue_amount?: number }).revenue_amount ?? 0), 0);
+
   const target = Number((targetRow as { target_revenue?: number } | null)?.target_revenue ?? 0);
-  const achieved = (completed ?? []).reduce(
-    (s, t) => s + Number((t as { revenue_amount?: number }).revenue_amount ?? 0), 0
-  );
-  return { month, target, achieved };
+  const oneTime = sum(oneTimeRows);
+  const monthly = sum(monthlyRows);
+  return { month, target, achieved: oneTime + monthly, oneTime, monthly };
 }
 
 async function fetchCeoKpi() {
@@ -214,7 +222,8 @@ export default async function CeoDashboardPage() {
       </div>
 
       {/* 今月の売上目標と進捗 */}
-      <GoalCard month={revenueGoal.month} target={revenueGoal.target} achieved={revenueGoal.achieved} />
+      <GoalCard month={revenueGoal.month} target={revenueGoal.target} achieved={revenueGoal.achieved}
+        oneTime={revenueGoal.oneTime} monthly={revenueGoal.monthly} />
 
       {/* AI秘書 指示バー */}
       <div className="rounded-2xl p-5 border border-blue-200"

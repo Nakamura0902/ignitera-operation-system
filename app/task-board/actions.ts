@@ -41,6 +41,8 @@ export interface CreateBoardTaskInput {
   deadline?: string;
   projectId?: string;
   assigneeMemberId?: string | null; // CEO/mgrは直接割当可
+  revenueAmount?: number;
+  revenueType?: "none" | "one_time" | "monthly";
 }
 
 export async function createBoardTask(input: CreateBoardTaskInput) {
@@ -50,6 +52,8 @@ export async function createBoardTask(input: CreateBoardTaskInput) {
   if (!input.title.trim()) return { error: "タスク名を入力してください" };
 
   const difficulty = Math.min(5, Math.max(1, Math.round(input.difficulty) || 3));
+  const revenueType = input.revenueType ?? "one_time";
+  const revenueAmount = revenueType === "none" ? 0 : (input.revenueAmount && input.revenueAmount > 0 ? input.revenueAmount : 0);
 
   // 作成者情報
   const { data: creator } = await adminSupabase
@@ -79,6 +83,8 @@ export async function createBoardTask(input: CreateBoardTaskInput) {
     priority: "medium",
     difficulty,
     reward_points: input.rewardPoints && input.rewardPoints > 0 ? input.rewardPoints : 0,
+    revenue_amount: revenueAmount,
+    revenue_type: revenueType,
     priority_rank: rank,
     due_date: input.deadline || null,
     project_id: input.projectId || null,
