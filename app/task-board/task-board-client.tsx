@@ -50,10 +50,17 @@ export default function TaskBoardClient(props: Props) {
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
+  // 指定した社員の列を、スクロールコンテナ基準で正確に左端へ寄せる
+  function scrollToColumn(id: string, behavior: ScrollBehavior = "auto") {
+    const container = scrollRef.current;
+    const el = container?.querySelector<HTMLElement>(`[data-member-id="${id}"]`);
+    if (!container || !el) return;
+    const left = el.getBoundingClientRect().left - container.getBoundingClientRect().left + container.scrollLeft - 16;
+    container.scrollTo({ left: Math.max(0, left), behavior });
+  }
   // 本人列へ初期スクロール（並び順は変えない）
   function scrollToMe(behavior: ScrollBehavior = "auto") {
-    const el = scrollRef.current?.querySelector<HTMLElement>(`[data-member-id="${currentMemberId}"]`);
-    if (el && scrollRef.current) scrollRef.current.scrollTo({ left: el.offsetLeft - 8, behavior });
+    scrollToColumn(currentMemberId, behavior);
   }
   useEffect(() => { scrollToMe("auto"); /* eslint-disable-next-line */ }, [currentMemberId]);
 
@@ -85,8 +92,7 @@ export default function TaskBoardClient(props: Props) {
     return [m.name, m.membershipId, m.role].some((v) => v.toLowerCase().includes(q));
   }
   function scrollToMember(id: string) {
-    const el = scrollRef.current?.querySelector<HTMLElement>(`[data-member-id="${id}"]`);
-    if (el && scrollRef.current) scrollRef.current.scrollTo({ left: el.offsetLeft - 8, behavior: "smooth" });
+    scrollToColumn(id, "smooth");
   }
 
   return (
@@ -99,7 +105,7 @@ export default function TaskBoardClient(props: Props) {
             <span className="text-xs text-slate-500">未アサイン <b className="text-slate-700">{unassigned.length}</b>件</span>
             <span className="text-xs text-rose-600">期限超過 <b>{overdueTotal}</b>件</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="hidden lg:flex items-center gap-2">
             <div className="relative">
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input value={search} onChange={(e) => setSearch(e.target.value)}
@@ -130,18 +136,27 @@ export default function TaskBoardClient(props: Props) {
         </div>
       </header>
 
-      {/* 移管申請（自分宛） */}
+      {/* 移管申請（自分宛・PCのみ操作可） */}
       {requests.length > 0 && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 lg:px-6 py-2 space-y-1">
+        <div className="hidden lg:block bg-amber-50 border-b border-amber-200 px-4 lg:px-6 py-2 space-y-1">
           {requests.map((r) => (
             <TransferRequestRow key={r.id} req={r} />
           ))}
         </div>
       )}
 
-      {/* ボード本体: 未アサイン固定 + 社員横スクロール */}
+      {/* スマホ: 自分の欄だけを表示（閲覧専用・実作業はPC） */}
+      <MobileBoard
+        member={members.find((m) => m.id === currentMemberId)}
+        tasks={byMember[currentMemberId] ?? []}
+        stat={stats[currentMemberId]}
+        unassignedCount={unassigned.length}
+        onOpenTask={setDrawerTask}
+      />
+
+      {/* PC: 未アサイン固定 + 社員横スクロール */}
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActiveTask(null)}>
-        <div className="flex-1 min-h-0 grid" style={{ gridTemplateColumns: "320px minmax(0,1fr)" }}>
+        <div className="hidden lg:grid flex-1 min-h-0" style={{ gridTemplateColumns: "320px minmax(0,1fr)" }}>
           <UnassignedColumn tasks={unassigned} onOpen={setDrawerTask} currentMemberId={currentMemberId} onAcquire={(t) => setAcquireT({ task: t, to: currentMemberId })} />
           <div ref={scrollRef} className="overflow-x-auto overflow-y-hidden">
             <div className="flex gap-4 h-full p-4">
@@ -241,6 +256,69 @@ function MemberColumn({ member, isSelf, tasks, stat, onOpenTask }: {
           <p className="text-[11px] text-slate-300 text-center py-6">タスクなし</p>
         ) : tasks.map((t) => <TaskCard key={t.id} task={t} onOpen={onOpenTask} />)}
       </div>
+    </div>
+  );
+}
+
+// ---------- スマホ: 自分の欄のみ（閲覧専用） ----------
+function MobileBoard({ member, tasks, stat, unassignedCount, onOpenTask }: {
+  member?: Member; tasks: BoardTask[]; stat?: Stats; unassignedCount: number; onOpenTask: (t: BoardTask) => void;
+}) {
+  return (
+    <div className="lg:hidden flex-1 min-h-0 overflow-y-auto bg-slate-50 p-3 space-y-3">
+      {/* 自分のカード */}
+      <div className="rounded-2xl bg-white border border-blue-200 ring-1 ring-blue-100 p-3">
+        <div className="flex items-center gap-2">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+            style={{ background: "linear-gradient(135deg,#2563eb,#7c3aed)" }}>
+            {member?.avatar ?? "?"}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-bold text-slate-800 truncate">{member?.name ?? "自分"}</p>
+              <span className="text-[9px] font-bold px-1.5 py-0.5 bg-blue-600 text-white rounded">YOU</span>
+            </div>
+            <p className="text-[10px] text-slate-400">
+              {member?.role === "MANAGER" ? "マネージャー" : member?.role === "CEO" ? "CEO" : "社員"}
+            </p>
+          </div>
+        </div>
+        {stat && (
+          <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-500">
+            <span>保有 <b className="text-slate-700">{stat.holding}</b></span>
+            <span>今週 <b className="text-blue-600">{stat.weekPoints}pt</b></span>
+            <span>完遂率 <b>{stat.completionRate}%</b></span>
+            {stat.overdue > 0 && <span className="text-rose-600">超過 {stat.overdue}</span>}
+          </div>
+        )}
+      </div>
+
+      {/* 自分のタスク（閲覧専用） */}
+      <div className="space-y-2">
+        {tasks.length === 0 ? (
+          <p className="text-xs text-slate-400 text-center py-8">担当中のタスクはありません</p>
+        ) : tasks.map((t) => (
+          <button key={t.id} onClick={() => onOpenTask(t)}
+            className="w-full text-left bg-white rounded-xl border border-slate-200 shadow-sm p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              {t.priorityRank != null && (
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${rankAccent(t.priorityRank).badge}`}>#{t.priorityRank}</span>
+              )}
+              <span className="text-sm font-medium text-slate-800 flex-1 truncate">{t.title}</span>
+            </div>
+            <div className="flex items-center gap-2 text-[11px] text-slate-500 flex-wrap">
+              <span>難易度 {t.difficulty}</span>
+              {t.rewardPoints > 0 && <span className="text-blue-600">{t.rewardPoints}pt</span>}
+              <span className={t.status === "OVERDUE" ? "text-rose-600 font-medium" : ""}>{formatRemaining(t.deadline)}</span>
+              <span className={`text-[9px] px-1.5 py-0.5 rounded-full border ${STATUS_BADGE[t.status]}`}>{STATUS_LABEL[t.status]}</span>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <p className="text-[11px] text-slate-400 text-center pt-1">
+        未アサイン {unassignedCount}件 ・ タスクの取得や移管などの操作はPCから行えます
+      </p>
     </div>
   );
 }
@@ -572,9 +650,14 @@ function TaskDrawer({ task, members, currentMemberId, onClose, onReturn, onTrans
             </div>
           )}
         </div>
-        {/* 本人担当の操作 */}
+        {/* 本人担当の操作（実作業はPCのみ） */}
         {isMine && (
-          <div className="border-t border-slate-100 p-4 space-y-2">
+          <div className="lg:hidden border-t border-slate-100 p-4">
+            <p className="text-[11px] text-slate-400 text-center">タスクの操作（進捗更新・完了報告・返却・移管）はPCから行えます</p>
+          </div>
+        )}
+        {isMine && (
+          <div className="hidden lg:block border-t border-slate-100 p-4 space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => act(() => setSchedule(task.id, "TODAY"))} disabled={isPending} className="py-2 text-xs rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50">今日に設定</button>
               <button onClick={() => act(() => setSchedule(task.id, "TOMORROW_OR_LATER"))} disabled={isPending} className="py-2 text-xs rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50">明日以降に設定</button>
