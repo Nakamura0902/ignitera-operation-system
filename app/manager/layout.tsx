@@ -30,7 +30,7 @@ export default async function ManagerLayout({ children }: { children: React.Reac
             <HeaderSearch userId={user.id} />
           </div>
           <div className="flex items-center gap-3">
-            <div className="px-3 py-1 bg-teal-50 text-teal-700 text-xs font-semibold rounded-full border border-teal-200">
+            <div className="hidden sm:block px-3 py-1 bg-teal-50 text-teal-700 text-xs font-semibold rounded-full border border-teal-200">
               マネージャービュー
             </div>
             <a href="/notifications" className="relative w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
@@ -48,7 +48,7 @@ export default async function ManagerLayout({ children }: { children: React.Reac
           </div>
         </header>
 
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-4 lg:p-6">{children}</main>
       </div>
     </div>
   );

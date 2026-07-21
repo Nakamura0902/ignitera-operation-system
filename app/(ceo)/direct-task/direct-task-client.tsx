@@ -67,7 +67,7 @@ export default function DirectTaskClient({ managers }: { managers: ManagerOption
             placeholder="背景・依頼内容・ゴールなどを記入" />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-semibold text-slate-500">カテゴリ（任意）</label>
             <input value={category} onChange={(e) => setCategory(e.target.value)}

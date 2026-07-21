@@ -112,7 +112,7 @@ export default async function ReportsPage() {
       </div>
 
       {/* KPI */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         {[
           { label: "今月の売上", value: `¥${(totalRevenue / 10000).toFixed(0)}万`, sub: `前月比 ${isGrowthPositive ? "+" : ""}${growthPct}%`, color: "#059669", up: isGrowthPositive },
           { label: "タスク完了率", value: `${totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0}%`, sub: `${totalCompleted}/${totalTasks}タスク`, color: "#2563eb" },
@@ -134,8 +134,8 @@ export default async function ReportsPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 space-y-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+        <div className="lg:col-span-2 space-y-5">
 
           {/* 売上推移チャート */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
@@ -179,7 +179,7 @@ export default async function ReportsPage() {
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
             <h2 className="text-sm font-bold text-slate-700 mb-4">マネージャー別パフォーマンス</h2>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="text-xs text-slate-400 border-b border-slate-100">
                     <th className="text-left pb-3 font-medium">マネージャー</th>

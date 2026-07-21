@@ -155,7 +155,7 @@ export default async function PayrollEstimatePage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
         {/* ドーナツチャート + 内訳 */}
         <div className="col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
           <h2 className="text-sm font-bold text-slate-700 mb-5">ポイント内訳</h2>

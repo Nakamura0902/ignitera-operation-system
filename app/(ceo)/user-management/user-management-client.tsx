@@ -228,8 +228,8 @@ export default function UserManagementClient({ initialUsers, roles }: Props) {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto">
+        <table className="w-full min-w-[760px] text-sm">
           <thead>
             <tr className="text-xs text-slate-400 border-b border-slate-100 bg-slate-50">
               <th className="text-left py-3 pl-4 font-medium">ユーザー</th>

@@ -21,7 +21,7 @@ export default async function NotificationsLayout({ children }: { children: Reac
               CEOビュー
             </div>
           </header>
-          <main className="flex-1 p-6">{children}</main>
+          <main className="flex-1 p-4 lg:p-6">{children}</main>
         </div>
       </div>
     );
@@ -50,7 +50,7 @@ export default async function NotificationsLayout({ children }: { children: Reac
             {isManager ? "マネージャービュー" : "社員ビュー"}
           </div>
         </header>
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-4 lg:p-6">{children}</main>
       </div>
     </div>
   );

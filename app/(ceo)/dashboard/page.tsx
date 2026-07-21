@@ -255,7 +255,7 @@ export default async function CeoDashboardPage() {
       </div>
 
       {/* KPIカード */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4">
         <StatCard label="本日の重要事項" value={`${ceoKpi.todayImportant}件`} sub="今日対応が必要" color="#2563eb" icon={<Zap size={16} />} href="/approval-center" />
         <StatCard label="確認待ち" value={`${ceoKpi.pendingApproval}件`} sub="承認待ちタスク" color="#f59e0b" icon={<Clock size={16} />} href="/approval-center" />
         <StatCard label="今週の案件" value={`${ceoKpi.weeklyProjects}件`} sub="進行中案件" color="#059669" icon={<CheckCircle2 size={16} />} href="/reports" />
@@ -263,9 +263,9 @@ export default async function CeoDashboardPage() {
         <StatCard label="AIからの提案" value={`${ceoKpi.aiProposals}件`} sub="確認が必要" color="#ef4444" icon={<Bot size={16} />} href="/ai-secretary" />
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
         {/* 指示フロー図 */}
-        <div className="col-span-2 space-y-5">
+        <div className="lg:col-span-2 space-y-5">
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
             <h2 className="text-sm font-bold text-slate-700 mb-5">指示の流れ — 全社AI連携構造</h2>
             <div className="flex items-center gap-3">

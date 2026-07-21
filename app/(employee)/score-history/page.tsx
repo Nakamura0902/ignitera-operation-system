@@ -102,7 +102,7 @@ export default async function ScoreHistoryPage() {
       </div>
 
       {/* サマリー */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
           <p className="text-xs text-slate-500 mb-1">評価済みタスク数</p>
           <p className="text-2xl font-bold text-slate-800">{evaluationHistory.length} 件</p>
@@ -187,7 +187,7 @@ export default async function ScoreHistoryPage() {
           <TrendingUp size={15} className="text-blue-600" />
           月別ポイント推移
         </h2>
-        <div className="grid grid-cols-6 gap-3">
+        <div className="grid grid-cols-6 gap-1.5 sm:gap-3">
           {monthlyPointHistory.map((d, i) => {
             const max = Math.max(...monthlyPointHistory.map((x) => x.points), 1);
             const isLast = i === monthlyPointHistory.length - 1;

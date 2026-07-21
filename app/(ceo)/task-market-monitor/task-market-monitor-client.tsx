@@ -112,7 +112,7 @@ export default function TaskMarketMonitorClient({ initialListings, ceoId }: { in
       {/* ルール説明 */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
         <h2 className="text-xs font-bold text-slate-600 mb-3">マーケット承認ルール</h2>
-        <div className="grid grid-cols-3 gap-4 text-xs text-slate-600">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs text-slate-600">
           <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
             <p className="font-bold text-emerald-700 mb-1">承認する場合</p>
             <p>担当変更が品質・期日に影響しないと判断し、引き受け申請者のスキルが十分な場合</p>
@@ -156,7 +156,7 @@ export default function TaskMarketMonitorClient({ initialListings, ceoId }: { in
                   </div>
                   <h3 className="text-sm font-bold text-slate-800 mb-1">{listing.taskTitle}</h3>
 
-                  <div className="grid grid-cols-3 gap-4 mt-3 text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-3 text-xs">
                     <div>
                       <p className="text-slate-400">申請者（出し手）</p>
                       <p className="font-medium text-slate-700 mt-0.5">{listing.lister}</p>

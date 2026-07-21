@@ -32,7 +32,7 @@ export default async function EmployeeLayout({ children }: { children: React.Rea
 
           <div className="flex items-center gap-3">
             {/* ロールバッジ */}
-            <div className={`px-3 py-1 text-xs font-semibold rounded-full border ${
+            <div className={`hidden sm:block px-3 py-1 text-xs font-semibold rounded-full border ${
               isManager ? "bg-teal-50 text-teal-700 border-teal-200" : "bg-blue-50 text-blue-700 border-blue-200"
             }`}>
               {isManager ? "マネージャービュー" : "社員ビュー"}
@@ -65,7 +65,7 @@ export default async function EmployeeLayout({ children }: { children: React.Rea
         </header>
 
         {/* メインコンテンツ */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-4 lg:p-6">
           {children}
         </main>
       </div>

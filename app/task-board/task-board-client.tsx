@@ -548,7 +548,7 @@ function AddTaskModal({ members, onClose, startTransition }: { members: Member[]
       <div className="space-y-3">
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="タスク名 *" className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl" />
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="詳細" className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl resize-none" />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-[11px] text-slate-500">難易度</label>
             <div className="flex gap-1 mt-1">
@@ -583,7 +583,7 @@ function AddTaskModal({ members, onClose, startTransition }: { members: Member[]
             </div>
           )}
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="text-[11px] text-slate-500">優先順位（任意・未アサイン内）</label>
             <input value={rank} onChange={(e) => setRank(e.target.value)} inputMode="numeric" placeholder="例: 2" className="w-full mt-1 px-3 py-1.5 text-sm bg-slate-50 border border-slate-200 rounded-xl" />

@@ -156,9 +156,9 @@ export default function TaskDetail({ task, userId }: { task: DbTaskDetail; userI
         <span className="text-slate-800 font-medium">{task.title}</span>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
         {/* メインカラム */}
-        <div className="col-span-2 space-y-5">
+        <div className="lg:col-span-2 space-y-5">
           {/* タスクヘッダー */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
             <div className="flex items-start gap-4">

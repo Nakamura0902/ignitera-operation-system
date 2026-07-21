@@ -19,7 +19,7 @@ export default async function CeoLayout({ children }: { children: React.ReactNod
               <ShieldCheck size={13} className="text-amber-600" />
               <span className="text-xs font-bold text-amber-700">CEOビュー</span>
             </div>
-            <span className="text-xs text-slate-400">全社指示・承認・確認の専用画面</span>
+            <span className="hidden lg:inline text-xs text-slate-400">全社指示・承認・確認の専用画面</span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -38,7 +38,7 @@ export default async function CeoLayout({ children }: { children: React.ReactNod
           </div>
         </header>
 
-        <main className="flex-1 p-6">{children}</main>
+        <main className="flex-1 p-4 lg:p-6">{children}</main>
       </div>
     </div>
   );

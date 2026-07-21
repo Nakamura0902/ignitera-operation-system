@@ -114,7 +114,7 @@ export default function PayrollReportClient({
       </div>
 
       {/* 総合サマリー */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         {[
           { label: "給与支払い総額（見込み）", value: `¥${totalEstimate.toLocaleString()}`, sub: `${payrollRows.length}名分の合計`, color: "#2563eb" },
           { label: "基本給合計", value: `¥${totalBase.toLocaleString()}`, sub: "固定分", color: "#7c3aed" },
@@ -150,7 +150,7 @@ export default function PayrollReportClient({
           <h2 className="text-sm font-bold text-slate-700">社員別 給与見込み一覧</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[760px] text-sm">
             <thead>
               <tr className="text-xs text-slate-400 border-b border-slate-100 bg-slate-50">
                 <th className="text-left py-3 pl-6 font-medium">社員</th>

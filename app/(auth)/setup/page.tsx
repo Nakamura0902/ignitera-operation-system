@@ -179,9 +179,9 @@ export default function SetupPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-5 gap-5">
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
                 {/* Form — 3 cols */}
-                <div className="col-span-3 space-y-5">
+                <div className="lg:col-span-3 space-y-5">
                   <form onSubmit={handleSubmit} className="space-y-5">
 
                     {/* Full name */}
@@ -203,7 +203,7 @@ export default function SetupPage() {
                     {/* Position */}
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-1.5">役職</label>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {POSITIONS.map(({ id, label, desc }) => (
                           <button
                             key={id}

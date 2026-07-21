@@ -99,7 +99,7 @@ function ScoreRow({
       {expanded && (
         <tr className="bg-blue-50/50">
           <td colSpan={7} className="px-4 py-4">
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
               <div>
                 <p className="text-xs font-bold text-slate-600 mb-3">スコア内訳</p>
                 <div className="space-y-2">
@@ -249,8 +249,8 @@ export default function TaskScoresClient({ initialScores, ceoId }: { initialScor
       </div>
 
       {/* スコアテーブル */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-x-auto">
+        <table className="w-full min-w-[760px] text-sm">
           <thead>
             <tr className="text-xs text-slate-400 border-b border-slate-100 bg-slate-50">
               <th className="text-left py-3 pl-4 font-medium">ID</th>
