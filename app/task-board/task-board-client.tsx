@@ -96,11 +96,11 @@ export default function TaskBoardClient(props: Props) {
   }
 
   return (
-    <div className="flex flex-col" style={{ height: "100vh" }}>
+    <div className="flex flex-col w-full min-w-0 overflow-x-hidden" style={{ height: "100vh" }}>
       {/* ヘッダー */}
       <header className="sticky top-0 z-30 bg-white border-b border-slate-200 pl-16 pr-4 lg:px-6 py-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-x-4 gap-y-1 flex-wrap min-w-0">
             <h1 className="text-lg font-bold text-slate-800">Task Board</h1>
             <span className="text-xs text-slate-500">未アサイン <b className="text-slate-700">{unassigned.length}</b>件</span>
             <span className="text-xs text-rose-600">期限超過 <b>{overdueTotal}</b>件</span>
@@ -265,7 +265,7 @@ function MobileBoard({ member, tasks, stat, unassignedCount, onOpenTask }: {
   member?: Member; tasks: BoardTask[]; stat?: Stats; unassignedCount: number; onOpenTask: (t: BoardTask) => void;
 }) {
   return (
-    <div className="lg:hidden flex-1 min-h-0 overflow-y-auto bg-slate-50 p-3 space-y-3">
+    <div className="lg:hidden flex-1 min-w-0 min-h-0 overflow-y-auto bg-slate-50 p-3 space-y-3">
       {/* 自分のカード */}
       <div className="rounded-2xl bg-white border border-blue-200 ring-1 ring-blue-100 p-3">
         <div className="flex items-center gap-2">
@@ -300,11 +300,11 @@ function MobileBoard({ member, tasks, stat, unassignedCount, onOpenTask }: {
         ) : tasks.map((t) => (
           <button key={t.id} onClick={() => onOpenTask(t)}
             className="w-full text-left bg-white rounded-xl border border-slate-200 shadow-sm p-3">
-            <div className="flex items-center gap-1.5 mb-1">
+            <div className="flex items-center gap-1.5 mb-1 min-w-0">
               {t.priorityRank != null && (
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${rankAccent(t.priorityRank).badge}`}>#{t.priorityRank}</span>
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${rankAccent(t.priorityRank).badge}`}>#{t.priorityRank}</span>
               )}
-              <span className="text-sm font-medium text-slate-800 flex-1 truncate">{t.title}</span>
+              <span className="text-sm font-medium text-slate-800 flex-1 min-w-0 truncate">{t.title}</span>
             </div>
             <div className="flex items-center gap-2 text-[11px] text-slate-500 flex-wrap">
               <span>難易度 {t.difficulty}</span>

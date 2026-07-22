@@ -12,7 +12,7 @@ export default async function TaskBoardLayout({ children }: { children: React.Re
     return (
       <div className="flex min-h-screen" style={{ background: "#f1f5f9" }}>
         <CeoSidebar user={{ name: user.name, avatar: user.avatar }} />
-        <div className="flex-1 lg:ml-56 min-h-screen">{children}</div>
+        <div className="flex-1 min-w-0 lg:ml-56 min-h-screen">{children}</div>
       </div>
     );
   }
@@ -29,7 +29,7 @@ export default async function TaskBoardLayout({ children }: { children: React.Re
   return (
     <div className="flex min-h-screen" style={{ background: "#f1f5f9" }}>
       <Sidebar user={{ ...user, unreadCount, inboxCount: inboxRes.count ?? 0 }} />
-      <div className="flex-1 lg:ml-56 min-h-screen">{children}</div>
+      <div className="flex-1 min-w-0 lg:ml-56 min-h-screen">{children}</div>
     </div>
   );
 }
